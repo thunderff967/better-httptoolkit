@@ -1,0 +1,791 @@
+const DEV_MODE = process.env.HTK_DEV === 'true';
+
+// Set up error handling before everything else:
+import { logError, addBreadcrumb } from './errors.ts';
+
+import { spawn, ChildProcess } from 'child_process';
+import * as os from 'os';
+import { promises as fs, createWriteStream, WriteStream } from 'fs'
+import * as path from 'path';
+import * as crypto from 'crypto';
+import * as querystring from 'querystring';
+import { URL } from 'url';
+import { app, BrowserWindow, shell, Menu, dialog, session, ipcMain } from 'electron';
+import yargs from 'yargs';
+import * as semver from 'semver';
+const rmRF = (p: string) => fs.rm(p, { recursive: true, force: true });
+
+import windowStateKeeper from 'electron-window-state';
+import { getSystemProxy } from 'os-proxy-config';
+import registerContextMenu from 'electron-context-menu';
+import { getDeferred } from '@httptoolkit/util';
+
+import { getMenu, shouldAutoHideMenu } from './menu.ts';
+import { ContextMenuDefinition, openContextMenu } from './context-menu.ts';
+import getPort, { portNumbers } from 'get-port';
+
+import { stopServer } from './stop-server.ts';
+import { shouldClearStaleUICache, clearUICache, recordUIRun } from './cache-cleanup.ts';
+import { getDeviceDetails } from './device.ts';
+
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const packageJson = require('../package.json');
+
+const isWindows = os.platform() === 'win32';
+
+let appUrl = process.env.APP_URL;
+const getAppUrl = () => {
+    if (appUrl) return appUrl;
+    return `http://127.0.0.1:45457/index.html`;
+};
+const hasTrustedOrigin = (url: URL) => {
+    if (appUrl) return url.origin === new URL(appUrl).origin;
+    return url.origin === `http://127.0.0.1:${serverPorts.serverPort}`;
+};
+
+const AUTH_TOKEN = crypto.randomBytes(20).toString('base64url');
+const DESKTOP_VERSION = packageJson.version;
+const BUNDLED_SERVER_VERSION = packageJson.config['httptoolkit-server-version'];
+if (!semver.parse(BUNDLED_SERVER_VERSION)) {
+    throw new Error("Package.json must specify an exact server version");
+}
+
+const APP_PATH = app.getAppPath();
+const RESOURCES_PATH = APP_PATH.endsWith('app.asar')
+    ? path.dirname(APP_PATH) // If we're bundled, resources are above the bundle
+    : APP_PATH; // Otherwise everything is in the root of the app
+const LOGS_PATH = app.getPath('logs');
+const LAST_RUN_LOG_PATH = path.join(LOGS_PATH, 'last-run.log');
+
+// Keep a global reference of the window object, if you don't, the window will
+// be closed automatically when the JavaScript object is garbage collected.
+let windows: Electron.BrowserWindow[] = [];
+
+let server: ChildProcess | null = null;
+
+interface ServerPorts {
+    serverPort: number;
+    mockttpPort: number;
+}
+
+// Port range outside ephemeral, so unlikely to race externally during the
+// (near) inevitable TOCTOU as we pass the port config to the server.
+const SERVER_PORT_RANGE_START = 28000;
+const SERVER_PORT_RANGE_END = 29999;
+
+const pickServerPorts = async (): Promise<ServerPorts> => {
+    const [serverPort, mockttpPort] = await Promise.all([
+        getPort({ port: portNumbers(SERVER_PORT_RANGE_START, SERVER_PORT_RANGE_END) }),
+        getPort({ port: portNumbers(SERVER_PORT_RANGE_START, SERVER_PORT_RANGE_END) })
+    ]);
+    return { serverPort, mockttpPort };
+};
+
+// Resolved before any window or server is started, to inject into the renderer
+// synchronously via additionalArguments and into the server via CLI flags.
+let serverPorts: ServerPorts;
+
+app.commandLine.appendSwitch('ignore-connections-limit', 'app.httptoolkit.tech');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('js-flags', [
+    '--expose-gc', // Expose window.gc in the UI
+    '--max-old-space-size=16384', // Increase max UI memory, to support very large sessions
+].join(' '));
+// Enable SharedArrayBuffer in all cases, since cross-origin isolation
+// isn't relevant to us at all (we never load other origins).
+app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
+
+let firstWindowCreated = false;
+
+const createWindow = () => {
+    firstWindowCreated = true;
+    // Load the previous window state, falling back to defaults
+    let windowState = windowStateKeeper({
+        defaultWidth: 1366,
+        defaultHeight: 768
+    });
+
+    const window = new BrowserWindow({
+        title: 'HTTP Toolkit',
+        backgroundColor: '#d8e2e6',
+
+        minWidth: 700,
+        minHeight: 600,
+
+        x: windowState.x,
+        y: windowState.y,
+        width: windowState.width,
+        height: windowState.height,
+
+        webPreferences: {
+            preload: path.join(import.meta.dirname, 'preload.cjs'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            // Pass startup-time values into the preload synchronously, so the
+            // UI can read them via desktopApi getters without awaiting IPC.
+            additionalArguments: [
+                `--htk-desktop-version=${DESKTOP_VERSION}`,
+                `--htk-server-auth-token=${AUTH_TOKEN}`,
+                `--htk-server-port=${serverPorts.serverPort}`,
+                `--htk-mockttp-port=${serverPorts.mockttpPort}`
+            ]
+        },
+
+        show: false
+    });
+
+    if (shouldAutoHideMenu()) {
+        window.setAutoHideMenuBar(true);
+        window.setMenuBarVisibility(false);
+    }
+
+    windows.push(window);
+    windowState.manage(window);
+
+    // Stream renderer console output directly into our log file:
+    window.webContents.on('console-message', ({ level, message }) => {
+        writeLog(`${level}: ${message}`);
+    });
+
+    // Limit permissions to our trusted origin only. This shouldn't be required (we don't allow loading
+    // 3rd party sites) but it's good practice for defense-in-depth etc. We don't limit permissions
+    // on the other hand - for *our* code, we trust it to do whatever it needs.
+    window.webContents.session.setPermissionRequestHandler((wc, _perm, callback) => {
+        const pageUrl = new URL(wc.getURL());
+        return callback(hasTrustedOrigin(pageUrl));
+    });
+
+    window.loadURL(getAppUrl() + '?' + querystring.stringify({
+        authToken: AUTH_TOKEN,
+        desktopVersion: DESKTOP_VERSION
+    }));
+
+    window.on('ready-to-show', function () {
+        window!.show();
+        window!.focus();
+    });
+
+    window.on('closed', () => {
+        const index = windows.indexOf(window);
+        if (index > -1) {
+            windows.splice(index, 1);
+        }
+    });
+};
+
+// Use a promise to organize events around 'ready', and ensure they never
+// fire before, as Electron will refuse to do various things if they do.
+const appReady = getDeferred();
+app.on('ready', () => appReady.resolve());
+
+let logStream: WriteStream | undefined;
+const getLogStream = () => {
+    if (!logStream) {
+        logStream = createWriteStream(LAST_RUN_LOG_PATH);
+        logStream.on('error', (e) => {
+            console.log('Log stream error:', e);
+        });
+    }
+    return logStream;
+};
+
+const writeLog = (message: string) => {
+    const stream = getLogStream();
+    if (stream.closed) return;
+    stream.write(message + '\n');
+}
+
+// Resolved once serverPorts is populated, after the main-instance branch
+// initialises it. createWindow reads serverPorts to seed additionalArguments.
+const portsResolved = getDeferred<ServerPorts>();
+
+const openNewWindow = () => Promise.all([appReady.promise, portsResolved.promise])
+    .then(() => createWindow());
+
+const amMainInstance = app.requestSingleInstanceLock();
+if (!amMainInstance) {
+    console.log('Not the main instance - quitting');
+    app.quit();
+} else {
+    writeLog(`--- Launching HTTP Toolkit desktop v${DESKTOP_VERSION} at ${new Date().toISOString()} ---`);
+
+
+    let serverKilled = false;
+    app.on('will-quit', async (event) => {
+        if (server && !serverKilled && !DEV_MODE) {
+            // Don't shutdown until we've tried to kill the server
+            event.preventDefault();
+
+            serverKilled = true;
+
+            try {
+                await stopServer(server, AUTH_TOKEN, serverPorts.serverPort);
+            } catch (error) {
+                console.log('Failed to kill server', error);
+                logError(error);
+            } finally {
+                // We've done our best - now shut down for real.
+                app.quit();
+            }
+        }
+    });
+
+    app.on('quit', () => {
+        logStream?.close(); // Explicitly close the logstream, to flush everything to disk.
+    });
+
+    app.on('web-contents-created', (_event, contents) => {
+        function injectValue(name: string, value: string) {
+            // Set a variable globally, and self-postmessage it too (to ping
+            // anybody who's explicitly waiting for it).
+            contents.executeJavaScript(`
+                window.${name} = '${value}';
+                window.postMessage({ ${name}: window.${name} }, '*');
+            `);
+        }
+
+        contents.on('dom-ready', () => {
+            // Define & announce config values to the app.
+
+            // Desktop version isn't used yet. Intended to allow us to detect
+            // and prompt for updates in future if a certain desktop version
+            // is required, and for error reporting context when things go wrong.
+            injectValue('httpToolkitDesktopVersion', DESKTOP_VERSION);
+
+            // Auth token is also injected into query string, but query string
+            // gets replaced on first navigation (immediately), whilst global
+            // vars like this are forever.
+            injectValue('httpToolkitAuthToken', AUTH_TOKEN);
+        });
+
+        // Redirect all navigations & new windows to the system browser
+        contents.on('will-navigate', (event: Electron.Event, navigationUrl: string) => {
+            const parsedUrl = new URL(navigationUrl);
+
+            if (!checkForUnsafeProtocol(parsedUrl)) {
+                console.warn(`Blocked navigation to unsafe url: ${navigationUrl}`);
+                event.preventDefault();
+                // Don't open the URL. Concern here is things like 'file' which
+                // could launch an exe or similar.
+            } else if (!hasTrustedOrigin(parsedUrl)) {
+                event.preventDefault();
+                handleExternalNavigation(parsedUrl);
+            }
+        });
+        contents.setWindowOpenHandler((openDetails) => {
+            const parsedUrl = new URL(openDetails.url);
+
+            if (!checkForUnsafeProtocol(parsedUrl)) {
+                console.warn(`Blocked window open for unsafe url: ${openDetails.url}`);
+                return { action: 'deny' };
+            } else if (!hasTrustedOrigin(parsedUrl)) {
+                handleExternalNavigation(parsedUrl);
+                return { action: 'deny' };
+            } else {
+                return { action: 'allow' };
+            }
+        });
+
+        contents.on('render-process-gone', (_event, details) => {
+            if (details.reason === 'clean-exit') return;
+
+            logError(`Renderer gone: ${details.reason}`);
+            showErrorAlert(
+                "UI crashed",
+                "The HTTP Toolkit UI stopped unexpected.\n\nPlease file an issue at github.com/httptoolkit/httptoolkit."
+            );
+
+            setImmediate(() => {
+                if (!contents.isDestroyed()) contents.reload();
+            });
+        });
+
+        contents.on('did-fail-load', (
+            _event,
+            code,
+            description,
+            url,
+            isMainFrame
+        ) => {
+            if (!isMainFrame) return; // Just in case
+
+            const { protocol, host, pathname } = new URL(url);
+            const baseURL = `${protocol}//${host}${pathname}`;
+
+            showErrorAlert(
+                "UI load failed",
+                `The HTTP Toolkit UI could not be loaded from\n${baseURL}.` +
+                "\n\n" +
+                `${description} (${code})`
+            );
+
+            setTimeout(() => {
+                if (!contents.isDestroyed()) contents.reload();
+            }, 2000);
+        });
+    });
+
+    function checkForUnsafeProtocol(url: URL) {
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            console.warn(`Attempt to open a non-HTTP url: ${url}`);
+            return false;
+        }
+        return true;
+    }
+
+    function handleExternalNavigation(url: URL) {
+        shell.openExternal(url.toString())
+            .catch((error) => {
+                showErrorAlert(
+                    "Failed to open URL",
+                    `HTTP Toolkit could not open ${url.toString()} in your browser, because: ${error?.message ?? error ?? 'unknown error'}`
+                );
+            });
+    }
+
+    async function showErrorAlert(title: string, body: string, docsUrl?: string) {
+        writeLog(`ALERT: ${title}: ${body}`);
+        console.warn(`${title}: ${body}`);
+
+        if (docsUrl) {
+            const result = await dialog.showMessageBox({
+                type: 'error',
+                buttons: ['OK', 'Open Docs'],
+                defaultId: 0,
+                title,
+                message: title,
+                detail: body
+            });
+
+            if (result.response === 1) {
+                await shell.openExternal(docsUrl);
+            }
+        } else {
+            dialog.showErrorBox(title, body);
+        }
+    }
+
+    // On startup, we want to kill server directories if the bundled server version is newer. This ensures that
+    // the desktop app can always guarantee the server is at least its bundled version, to automatically pick
+    // up updates more quickly and avoid incompatibilities.
+    async function cleanupOldServers() {
+        // This mirrors the path logic from Oclif:
+        // https://github.com/oclif/config/blob/master/src/config.ts +
+        // https://github.com/oclif/plugin-update/blob/master/src/hooks/init.ts
+
+        const homeDir = process.env.HOME ||
+            (isWindows && (
+                (
+                    process.env.HOMEDRIVE &&
+                    process.env.HOMEPATH &&
+                    path.join(process.env.HOMEDRIVE!, process.env.HOMEPATH!)
+                ) ||
+                process.env.USERPROFILE
+            )) ||
+            os.homedir() ||
+            os.tmpdir();
+
+        const oclifDataPath = path.join(
+            process.env.XDG_DATA_HOME ||
+            (isWindows && process.env.LOCALAPPDATA) ||
+            path.join(homeDir, '.local', 'share'),
+            'httptoolkit-server'
+        );
+
+        const serverUpdatesPath = process.env.OCLIF_CLIENT_HOME ||
+            path.join(oclifDataPath, 'client');
+
+        const serverPaths = await fs.readdir(serverUpdatesPath)
+            // Don't error if this path doesn't exist - that's normal at first
+            .catch((e) => {
+                if (e.code === 'ENOENT') {
+                    return [] as string[];
+                } else throw e;
+            });
+
+        if (serverPaths.some((filename) =>
+            !semver.valid(filename.replace(/\.partial\.\d+$/, '')) &&
+            filename !== 'bin' &&
+            filename !== 'current' &&
+            filename !== '.DS_Store' // Meaningless Mac folder metadata
+        )) {
+            // If the folder contains something other than the expected version folders, be careful.
+            console.log(serverPaths);
+            logError(
+                `Server path (${serverUpdatesPath}) contains unexpected content, ignoring`
+            );
+            return;
+        }
+
+        // If the bundled server is newer than all installed server versions, then
+        // delete all the installed server versions entirely before we start.
+        if (serverPaths.length && !serverPaths.some((serverPath) => {
+            try {
+                return semver.gt(serverPath, BUNDLED_SERVER_VERSION)
+            } catch (e) {
+                return false;
+            }
+        })) {
+            console.log('All server versions installed are outdated, deleting');
+            await rmRF(serverUpdatesPath);
+        }
+
+        writeLog('Server cleanup check completed');
+    }
+
+    async function startServer(retries = 2) {
+        writeLog('Starting server');
+        const binName = isWindows ? 'httptoolkit-server.cmd' : 'httptoolkit-server';
+        const serverBinPath = APP_PATH.endsWith('app.asar')
+            ? path.join(RESOURCES_PATH, 'app.asar.unpacked', 'httptoolkit-server', 'bin', binName)
+            : path.join(RESOURCES_PATH, 'httptoolkit-server', 'bin', binName);
+        const serverBinCommand = isWindows ? `"${serverBinPath}"` : serverBinPath;
+
+        const envVars = {
+            ...process.env,
+
+            HTK_SERVER_TOKEN: AUTH_TOKEN,
+            HTK_DESKTOP_EXE: app.getPath('exe'),
+            HTK_DESKTOP_RESOURCES: RESOURCES_PATH,
+            NODE_SKIP_PLATFORM_CHECK: '1',
+            OPENSSL_CONF: undefined, // Not relevant to us, and if set this can crash Node.js
+
+            NODE_OPTIONS:
+                process.env.HTTPTOOLKIT_NODE_OPTIONS || // Allow manually configuring node options
+                [
+                    "--max-http-header-size=102400", // By default, set max header size to 100KB
+                    "--insecure-http-parser" // Allow invalid HTTP, e.g. header values - we'd rather be invisible than strict
+                ].join(' ')
+        }
+
+        const serverArgs = [
+            'start',
+            '--server-port', String(serverPorts.serverPort),
+            '--mockttp-port', String(serverPorts.mockttpPort)
+        ];
+
+        server = spawn(serverBinCommand, serverArgs, {
+            windowsHide: true,
+            stdio: ['inherit', 'pipe', 'pipe'],
+            shell: isWindows, // Required to spawn a .cmd script
+            windowsVerbatimArguments: false, // Fixes quoting in windows shells
+            detached: !isWindows, // Detach on Linux, so we can cleanly kill as a group
+            env: envVars
+        });
+
+        // Both not null because we pass 'pipe' for args 2 & 3 above.
+        const serverStdout = server.stdout!;
+        const serverStderr = server.stderr!;
+
+        serverStdout.pipe(process.stdout);
+        serverStderr.pipe(process.stderr);
+        serverStdout.pipe(getLogStream());
+        serverStderr.pipe(getLogStream());
+
+        const startTime = Date.now();
+        let seenOutput = false;
+        server.stdout!.on('data', (data) => {
+            // Server always produces output immediately, which works nicely to detect actual start time (and
+            // any issues due to AV scans or similar).
+            if (!seenOutput) {
+                seenOutput = true;
+                console.log(`Server took ${Date.now() - startTime}ms to begin startup`);
+            }
+            addBreadcrumb({ category: 'server-stdout', message: data.toString('utf8'), level: <any>'info' });
+        });
+
+        let lastError: { message: string, time: number } | undefined = undefined;
+        serverStderr.on('data', (data) => {
+            const errorOutput = data.toString('utf8');
+            addBreadcrumb({ category: 'server-stderr', message: errorOutput, level: <any>'warning' });
+
+            // Remember the last '*Error:' line we saw.
+            lastError = {
+                message: errorOutput
+                    .split('\n')
+                    .filter((line: string) => line.match(/^\s*Error:/i))
+                    .slice(-1)[0]?.trim() || lastError,
+                time: Date.now()
+            };
+        });
+
+        const serverStartTime = Date.now();
+
+        const serverShutdown: Promise<void> = new Promise<Error | number | null>((resolve) => {
+            server!.once('error', resolve);
+            server!.once('exit', resolve);
+        }).then((errorOrCode) => {
+            if (serverKilled) return;
+
+            // The server should never shutdown unless the whole process is finished, so this is bad.
+            const serverRunTime = Date.now() - serverStartTime;
+
+            let error: Error;
+
+            if (errorOrCode && typeof errorOrCode !== 'number') {
+                error = errorOrCode;
+            } else if (lastError?.time && (Date.now() - lastError.time) < 2000) {
+                error = new Error(`Server crashed with '${lastError.message}' (${errorOrCode})`);
+            } else {
+                error = new Error(`Server shutdown unexpectedly with code ${errorOrCode}`);
+            }
+
+            addBreadcrumb({
+                category: 'server-exit', message: error.message, level: <any>'error', data: { serverRunTime }
+            });
+            logError(error, ['server-exit', error.message, (error as any).code?.toString() || '']);
+
+            showErrorAlert(
+                'HTTP Toolkit hit an error',
+                `${error.message}.\n\n` +
+                `See ${LAST_RUN_LOG_PATH} for more details.\n\n` +
+                `Please file an issue at github.com/httptoolkit/httptoolkit.`
+            );
+
+            // Retry limited times, but not for near-immediate failures.
+            if (retries > 0 && serverRunTime > 5000) {
+                // This will break the app, so refresh it
+                windows.forEach(window => {
+                    if (!window.isDestroyed()) window.reload();
+                });
+                return startServer(retries - 1);
+            }
+
+            // If we've run out of retries, throw (kill the app entirely)
+            throw error;
+        });
+
+        return serverShutdown;
+    }
+
+    // Handle invalid COMSPEC on Windows, which frequently causes issues on weird configurations:
+    if (
+        process.platform === 'win32' &&
+        process.env.COMSPEC &&
+        !process.env.COMSPEC.toLowerCase().trim().endsWith('cmd.exe')
+    ) {
+        showErrorAlert(
+            "Unsupported COMSPEC configuration",
+            "HTTP Toolkit has detected that your default command interpreter is not cmd.exe.\n\n" +
+            "This will cause problems with HTTP Toolkit, and many other applications. " +
+            "To fix this, set the COMSPEC environment variable to point to cmd.exe - most "  +
+            "commonly that means 'C:\\Windows\\System32\\cmd.exe'.\n\n" +
+            "(Having trouble? File an issue at github.com/httptoolkit/httptoolkit)"
+        );
+
+        // Overwrite it for our purposes anyway, to try to minimize breakage:
+        process.env.COMSPEC = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'cmd.exe');
+    }
+
+    // Check we're happy using the default proxy settings
+    getSystemProxy()
+        .then((proxyConfig) => {
+            let shouldDisableProxy = false;
+
+            if (proxyConfig) {
+                // If the proxy is local, we don't use it (this probably means HTTP Toolkit itself is the
+                // system proxy, which causes lots of problems - we avoid in that case).
+                const proxyHostname = new URL(proxyConfig.proxyUrl).hostname;
+                if (proxyHostname === 'localhost' || proxyHostname.startsWith('127.0.0')) {
+                    shouldDisableProxy = true;
+                }
+
+                // If there's no proxy config, if we can't easily parse it, or if it's not localhost
+                // then we use it as normal - it might be required for connectivity.
+            }
+
+            if (shouldDisableProxy) {
+                console.warn("Ignoring localhost system proxy setting");
+
+                // If the proxy is unsuitable (there is none, or its localhost and so might be a loop) then
+                // we drop all proxy config and try to connect to everything directly instead.
+
+                // This tries to avoid passing bad config through to the server. Nice to do but not critical,
+                // since upstream (i.e. everything except updates & error reports) is checked & configured by the UI.
+                ['http_proxy', 'HTTP_PROXY', 'https_proxy', 'HTTPS_PROXY'].forEach((v) => delete process.env[v]);
+
+                if (!app.isReady()) {
+                    // If the app hasn't started yet it's easy: we disable Chromium's proxy detection entirely
+                    app.commandLine.appendSwitch('no-proxy-server');
+                } else {
+                    // If the app has already started at this point, things get more messy.
+
+                    // First, we change the default session to avoid the proxy:
+                    session.defaultSession.setProxy({ mode: 'direct' });
+
+                    // Then we have to reset any existing windows, so that they avoid the proxy. They're
+                    // probably broken anyway at this stage.
+                    windows.forEach(window => {
+                        const { session } = window.webContents;
+                        session.closeAllConnections()
+                        session.setProxy({ mode: 'direct' });
+                        window.reload();
+                    });
+                }
+            }
+            // Otherwise we just let Electron use the defaults - no problem at all.
+        })
+        .catch((e) => {
+            logError(e);
+            return undefined;
+        });
+
+    cleanupOldServers().catch(console.log).then(async () => {
+        // N.b. we pick the ports as late as possible to limit TOCTOU window
+        const ports = { serverPort: 45457, mockttpPort: 45456 };
+        serverPorts = ports;
+        portsResolved.resolve(ports);
+
+        return startServer();
+    }).catch((err) => {
+        console.error('Failed to start server, exiting.', err);
+
+        // Hide immediately, shutdown entirely after a brief pause for Sentry
+        windows.forEach(window => window.hide());
+        setTimeout(() => process.exit(3), 500);
+    });
+
+    // Decide whether we need to reset the UI cache (desktop upgrade + outdated UI)
+    const userDataPath = app.getPath('userData');
+    const cacheDecision: Promise<boolean> = DEV_MODE
+        ? Promise.resolve(false)
+        : shouldClearStaleUICache({
+            userDataPath,
+            currentVersion: DESKTOP_VERSION,
+            log: writeLog,
+            reportError: logError
+        });
+
+    // If so, we clear before the first window loads, so a stale service worker isn't reused. Clearing
+    // must not block launch though: on failure we log, leave the cache in place and carry on.
+    const uiCacheReady = Promise.all([appReady.promise, cacheDecision])
+        .then(async ([, shouldClear]) => {
+            if (shouldClear) await clearUICache(session.defaultSession);
+        })
+        .catch((error) => {
+            writeLog(`Failed to clear UI cache: ${error}`);
+            logError(error);
+        });
+
+    // Record last-run info async (used for the outdated cache checks above in future runs):
+    if (!DEV_MODE) {
+        Promise.all([appReady.promise, cacheDecision])
+            .then(() => recordUIRun(userDataPath, DESKTOP_VERSION))
+            .catch((error) => {
+                writeLog(`Failed to record desktop run: ${error}`);
+                logError(error);
+            });
+    }
+
+    Promise.all([appReady.promise, portsResolved.promise, uiCacheReady]).then(async () => {
+        Menu.setApplicationMenu(getMenu(windows, openNewWindow));
+        const net = await import('net');
+        for (let i = 0; i < 30; i++) {
+            const open = await new Promise((resolve) => {
+                const client = net.connect({ port: serverPorts.serverPort }, () => {
+                    client.end();
+                    resolve(true);
+                });
+                client.on('error', () => resolve(false));
+            });
+            if (open) break;
+            await new Promise((r) => setTimeout(r, 200));
+        }
+        createWindow();
+    });
+
+    // We use a single process instance to manage the server, but we
+    // do allow multiple windows.
+    app.on('second-instance', openNewWindow);
+
+    app.on('activate', () => {
+        // On OS X it's common to re-create a window in the app when the
+        // dock icon is clicked and there are no other windows open.
+        if (windows.length === 0) {
+            openNewWindow();
+        }
+    });
+
+    app.on('window-all-closed', () => {
+        // On OS X it is common for applications and their menu bar
+        // to stay active until the user quits explicitly with Cmd + Q
+        // Guard: don't quit if no window has ever been created yet (still starting up)
+        if (process.platform !== 'darwin' && firstWindowCreated) {
+            app.quit();
+        }
+    });
+}
+
+// Restrict calls to IPC handler to our trusted host. This shouldn't be required (we don't allow loading
+// 3rd party sites) but it's good practice for defense-in-depth etc. We allow calls with an empty URL
+// because the preload script fires IPC invocations before navigation completes, so the frame URL is
+// not yet set at that point.
+const ipcHandler = <A extends any[], R>(fn: (...args: A) => R) => (
+    event: Electron.IpcMainInvokeEvent,
+    ...args: A
+): R => {
+    if (!event.senderFrame) {
+        throw new Error('IPC call from destroyed frame');
+    }
+    const frameUrl = event.senderFrame.url;
+    if (frameUrl && frameUrl !== 'about:blank' && !hasTrustedOrigin(new URL(frameUrl))) {
+        throw new Error(`Invalid IPC sender URL: ${frameUrl}`);
+    }
+    return fn(...args);
+};
+
+ipcMain.handle('select-application', ipcHandler(async () => {
+    const result = await dialog.showOpenDialog({
+        properties:
+        process.platform === 'darwin'
+            ? ['openFile', 'openDirectory', 'treatPackageAsDirectory']
+            : ['openFile'],
+    });
+
+    if (!result || result.canceled) return undefined;
+    else return result.filePaths[0];
+}));
+
+ipcMain.handle('select-file-path', ipcHandler(async () => {
+    const result = await dialog.showOpenDialog({
+        properties: ['openFile']
+    });
+
+    if (!result || result.canceled) return undefined;
+    else return result.filePaths[0];
+}));
+
+ipcMain.handle('select-save-file-path', ipcHandler(async () => {
+    const result = await dialog.showSaveDialog({});
+
+    if (!result || result.canceled) return undefined;
+    else return result.filePath;
+}));
+
+// Enable the default context menu
+registerContextMenu({
+    showSaveImageAs: true,
+    showSelectAll: false // Weird (does web-style select-all-text), skip it
+});
+
+// Enable custom context menus, for special cases where the UI wants to define the options available
+ipcMain.handle('open-context-menu', ipcHandler((options: ContextMenuDefinition) =>
+    openContextMenu(options)
+));
+
+ipcMain.handle('get-device-info', ipcHandler(() => getDeviceDetails()));
+
+ipcMain.handle('set-component-versions', ipcHandler((versions: Record<string, string>) => {
+    Menu.setApplicationMenu(getMenu(windows, openNewWindow, versions));
+}));
+
+let restarting = false;
+ipcMain.handle('restart-app', ipcHandler(() => {
+    if (restarting) return;
+    restarting = true;
+    console.log('Restarting...');
+
+    app.relaunch();
+    app.quit();
+}));

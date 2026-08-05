@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -e
+
+# Exclude ourselves from PATH, find the real php, then reset PATH
+PATH="${PATH//`dirname "$0"`:/}"
+real_php=`command -v php`
+PATH="`dirname "$0"`:$PATH"
+
+# Strip out our PHP_INI_SCAN_DIR - if this file has been run successfully, then it's not necessary,
+# and it can cause problems (since it overrides any default scan directories configured)
+export INJECTED_PHP_INI_DIR=$HTTP_TOOLKIT_OVERRIDE_PATH/php
+export PHP_INI_SCAN_DIR="${PHP_INI_SCAN_DIR//:$INJECTED_PHP_INI_DIR/}"
+export PHP_INI_SCAN_DIR="${PHP_INI_SCAN_DIR//$INJECTED_PHP_INI_DIR/}"
+if [ -z "$PHP_INI_SCAN_DIR" ]; then
+    unset PHP_INI_SCAN_DIR
+fi
+
+# Call PHP with the given arguments, and a few extra
+PHP_ARGS=(
+    # Make OpenSSL trust us
+    -d "openssl.cafile=$SSL_CERT_FILE" \
+    # Make cURL trust us
+    -d "curl.cainfo=$SSL_CERT_FILE" \
+    # Prepend a script that enables the proxy
+    -d "auto_prepend_file=`dirname "$0"`/../php/prepend.php" \
+    # Pass through all other provided arguments
+    "$@"
+)
+
+if command -v winpty >/dev/null 2>&1; then
+    winpty "$real_php" "${PHP_ARGS[@]}"
+else
+    "$real_php" "${PHP_ARGS[@]}"
+fi
