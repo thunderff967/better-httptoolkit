@@ -25,6 +25,7 @@ The project is intended to extend the original application with additional funct
 
 Current work includes maintaining an offline-ready build and improving areas that are difficult to customize in the upstream project.
 
+
 ---
 
 ## Roadmap
@@ -55,6 +56,17 @@ Areas that need work include:
 - Documentation
 - General bug fixes
 
+---
+
+## Current Status
+
+Found 3 startup and installation issues that are currently being fixed:
+
+- **Logout issue:** Logging out currently makes the installation unusable.
+- **Launch issues:** The application shows errors during launch until **OK** is pressed three times, followed by waiting for the server to initialize.
+- **Fresh terminal issues:** Starting the application from a fresh terminal session can cause additional errors.
+
+These issues are currently being investigated and fixed.
 ---
 
 ## Disclaimer
