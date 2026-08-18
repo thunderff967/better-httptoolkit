@@ -1,0 +1,54 @@
+name: Build & Create Draft Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release Tag (e.g. v1.26.1-mod.1.1.0)'
+        required: true
+        default: 'v1.26.1-mod.1.1.0'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    name: Build Windows Binaries & Upload to Draft Release
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install dependencies & Build Electron
+        run: |
+          cd app
+          npm install
+          npm run build:electron
+
+      - name: Create Portable Zip Archive
+        shell: pwsh
+        run: |
+          cd app/dist
+          Compress-Archive -Path .\win-unpacked\* -DestinationPath .\Better-HTTP-Toolkit-1.26.1-Portable.zip -CompressionLevel Optimal -Force
+
+      - name: Upload to GitHub Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
+          name: Better HTTP Toolkit v1.26.1 (Mod v1.1.0)
+          draft: true
+          prerelease: false
+          files: |
+            app/dist/HTTP-Toolkit-1.26.1.exe
+            app/dist/Better-HTTP-Toolkit-1.26.1-Portable.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
