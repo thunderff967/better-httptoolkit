@@ -66,16 +66,17 @@
       "output": "dist"
     },
     "asarUnpack": [
-      "httptoolkit-server/**/*"
+      "httptoolkit-server/**/*",
+      "**/node_modules/registry-js/**/*"
     ]
   },
   "scripts": {
-    "build": "tsc --noEmit --skipLibCheck || exit 0",
+    "build": "tsc",
     "build:electron": "npm run build && npx electron-builder build --config ./build-setup/electron-builder.config.cjs"
   },
   "devDependencies": {
-    "@types/electron": "^1.4.38",
     "@types/node": "^26.1.1",
+    "electron": "^43.4.0",
     "typescript": "^7.0.2"
   }
 }

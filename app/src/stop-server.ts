@@ -7,7 +7,7 @@ const isRunning = (pid: number) => {
     try {
         process.kill(pid, 0);
         return true;
-    } catch (e) {
+    } catch (e: any) {
         if (e.code === 'ESRCH') return false;
         else throw e;
     }

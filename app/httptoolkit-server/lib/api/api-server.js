@@ -53,32 +53,57 @@ class HttpToolkitServerApi extends events.EventEmitter {
             }
             next(null);
         });
+        const fs = require('fs');
         const path = require('path');
-        this.server.use(express_1.default.static(path.join(__dirname, '..', '..', 'ui')));
+        const possibleUiDirs = [
+            path.join(__dirname, '..', '..', 'ui'),
+            path.join(__dirname, '..', 'ui'),
+            path.join(__dirname, 'ui'),
+            path.join(constants_1.APP_ROOT, 'ui'),
+            path.join(process.cwd(), 'ui'),
+            path.join(process.cwd(), 'app', 'httptoolkit-server', 'ui'),
+            path.join(process.cwd(), 'httptoolkit-server', 'ui')
+        ];
+        const uiDir = possibleUiDirs.find(dir => fs.existsSync(path.join(dir, 'index.html'))) || possibleUiDirs[0];
+
+        // Serve UI static files first without blocking
+        this.server.use(express_1.default.static(uiDir, { index: ['index.html'] }));
+        this.server.get(['/', '/index.html'], (req, res) => {
+            res.sendFile(path.join(uiDir, 'index.html'));
+        });
+
         this.server.use((0, cors_1.default)({
-            origin: constants_1.ALLOWED_ORIGINS,
-            maxAge: 86400 // Cache this result for as long as possible
+            origin: (origin, callback) => {
+                if (!origin) return callback(null, true);
+                const isAllowed = constants_1.ALLOWED_ORIGINS.some(pattern =>
+                    typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
+                );
+                if (isAllowed) return callback(null, true);
+                return callback(null, false);
+            },
+            credentials: true,
+            maxAge: 86400
         }));
-        this.server.use((0, cors_gate_1.default)({
-            strict: false,
-            allowSafe: true,
-            origin: '',
-            // Extend default failure response to add a helpful error body.
-            failure: (_req, res, _next) => {
-                res.statusCode = 403;
-                res.send({ error: { message: 'Invalid CORS headers' } });
-            }
-        }));
+
         this.server.use((req, res, next) => {
-            if (req.path === '/' && req.method !== 'POST') {
-                // We allow only POST to GQL, because that's all we expect for GraphQL queries,
-                // and this helps derisk some (admittedly unlikely) XSRF possibilities.
+            const origin = req.headers['origin'];
+            if (origin) {
+                const isAllowed = constants_1.ALLOWED_ORIGINS.some(pattern =>
+                    typeof pattern === 'string' ? pattern === origin : pattern.test(origin)
+                );
+                if (!isAllowed) {
+                    res.statusCode = 403;
+                    return res.send({ error: { message: 'Invalid CORS headers' } });
+                }
+            }
+            next();
+        });
+
+        this.server.use((req, res, next) => {
+            if (req.path === '/' && req.method !== 'POST' && req.method !== 'GET') {
                 res.status(405).send({
-                    error: { message: 'Only POST requests are supported' }
+                    error: { message: 'Only GET and POST requests are supported' }
                 });
-                // XSRF is less of a risk elsewhere, as REST GET endpoints don't do dangerous
-                // things. Also we're enforcing Origin headers everywhere so it should be
-                // impossible regardless, but better safe than sorry!
             }
             else {
                 next();
@@ -88,9 +113,18 @@ class HttpToolkitServerApi extends events.EventEmitter {
             // Optional auth token. This allows us to lock down UI/server communication further
             // when started together. The desktop generates a token every run and passes it to both.
             this.server.use((req, res, next) => {
+                // Allow static asset requests without Bearer authorization
+                if (req.method === 'GET' && (
+                    req.path === '/' ||
+                    req.path === '/index.html' ||
+                    /\.(js|css|html|png|svg|ico|wasm|woff|woff2|ttf)$/i.test(req.path)
+                )) {
+                    return next();
+                }
+
                 const authHeader = req.headers['authorization'] || '';
                 const tokenMatch = authHeader.match(/Bearer (\S+)/) || [];
-                const token = tokenMatch[1];
+                const token = tokenMatch[1] || req.query.authToken;
                 if (token !== config.authToken) {
                     res.status(403).send({
                         error: { message: 'Valid token required' }

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+build/
+.system_generated/
+*.log
+.DS_Store
+Thumbs.db

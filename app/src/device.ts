@@ -61,7 +61,7 @@ function getWindowsVersion() {
             // Other versions - e.g. 6.3 is Windows 8.1
             return majorMinorOnly(rawVersion);
         }
-    } catch (e) {
+    } catch (e: any) {
         logError(`Failed to detect windows version: ${e.message || e}`);
         return 'Unknown';
     }
@@ -88,7 +88,7 @@ async function getLinuxOsDetails() {
             platform: osRelease['ID'] || osRelease['NAME'] || 'linux',
             release: majorMinorOnly(osRelease['VERSION_ID']) || 'Unknown'
         };
-    } catch (e) {
+    } catch (e: any) {
         logError(`Failed to detect Linux version: ${e.message}`);
         return {
             platform: 'linux',
@@ -135,7 +135,7 @@ async function getRealArch() {
                     break;
                 }
         }
-    } catch (e) {
+    } catch (e: any) {
         console.warn(`Error querying system arch: ${e.message}`);
         logError(e);
     }

@@ -1,43 +1,79 @@
-HTTP Toolkit Desktop [![Build Status](https://github.com/httptoolkit/httptoolkit-desktop/workflows/CI/badge.svg)](https://github.com/httptoolkit/httptoolkit-desktop/actions)
-===================
+<h1 align="center">Better HTTP Toolkit — Desktop App 🖥️</h1>
 
-This repo contains the desktop build setup for [HTTP Toolkit](https://httptoolkit.com), a beautiful, cross-platform & open-source HTTP(S) debugging proxy, analyzer & client.
+<p align="center">
+  <strong>Electron desktop wrapper, launcher, and packaging pipeline for Better HTTP Toolkit.</strong>
+</p>
 
-Looking to file bugs, request features or send feedback? File an issue or vote on existing ones at [github.com/httptoolkit/httptoolkit](https://github.com/httptoolkit/httptoolkit).
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+  <a href="https://www.electronjs.org/">
+    <img src="https://img.shields.io/badge/Electron-Latest-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
+  </a>
+  <img src="https://img.shields.io/badge/status-active-22C55E?style=for-the-badge" alt="Status">
+</p>
 
-## What is this?
+---
 
-This repo is responsible for building HTTP Toolkit into standalone desktop installers & executables that users can run directly on Windows, Linux & Mac.
+## Overview 📖
 
-HTTP Toolkit consists of two runtime parts: [a UI](https://github.com/httptoolkit/httptoolkit-ui), written as a single-page web application, and [a server](https://github.com/httptoolkit/httptoolkit-server), written as a node.js CLI application.
+This directory (`/app`) contains the desktop shell that orchestrates the entire application lifecycle:
+1. **Server Lifecycle Management**: Automatically launches the bundled local `httptoolkit-server` in the background with isolated environment flags (`HTTPTOOLKIT_SERVER_REDIRECTED=1`).
+2. **Dynamic Port Discovery & Ready Polling**: Monitors server startup via automated `waitForServerReady` polling to prevent race conditions during UI initialization.
+3. **Renderer Bridge**: Exposes native APIs safely via `src/preload.cts` context bridge.
+4. **Native Binary Integration**: Bundles and unpacks prebuilt NAPI modules (`registry-js`, `node-datachannel`) into `app.asar.unpacked` for frictionless offline execution.
 
-This repo builds a single executable that:
+---
 
-* Includes the latest build of [httptoolkit-server](https://github.com/httptoolkit/httptoolkit-server)
-* When run:
-    * Starts the server in the background
-    * Opens the UI in an [Electron](https://electronjs.org/) window
-    * Kills the server when closed
+## Directory Structure 📁
 
-This means this is mostly Electron configuration & setup, and build configuration for the executable and various installers. It's built using [Electron Builder](https://electron.build/).
+```
+app/
+├── build-setup/
+│   ├── build.cjs                       # Build orchestration & post-packaging hooks
+│   └── electron-builder.config.cjs     # Electron-Builder configuration
+├── httptoolkit-server/                 # Bundled local server & UI runtime
+├── src/
+│   ├── index.ts                        # Electron main process & server supervisor
+│   └── preload.cts                     # Preload bridge exposing desktopApi
+├── dist/                               # Generated distribution artifacts
+│   ├── win-unpacked/                   # Standalone unpacked folder with 'HTTP Toolkit.exe'
+│   └── HTTP-Toolkit-1.26.1.exe         # Windows NSIS installer
+├── package.json                        # Scripts and dependencies
+└── tsconfig.json                       # TypeScript compiler options
+```
 
-This isn't the only way to run HTTP Toolkit! It's the most convenient option for most users, but it's also completely possible to run the server as a standalone tool and open the UI (hosted at https://app.httptoolkit.tech) in any browser you'd like.
+---
 
-Note that the resulting executable _doesn't_ autoupdate (at the moment). Instead both the server (as an [oclif](http://oclif.io) app) and the web UI (via service workers) include their own auto-update functionality.
+## Scripts & Building ⚙️
 
-The builds themselves are done on GitHub Actions, and tagged `main` builds are automatically published from there as [github releases](https://github.com/httptoolkit/httptoolkit-desktop/releases).
+| Command | Description |
+|---|---|
+| `npm run build` | Compiles TypeScript source (`src/` ➔ `dist/`) 🔨 |
+| `npm run build:electron` | Full production build (compiles TS + packages standalone unpacked & NSIS installer) 📦 |
+| `npm start` | Launches development Electron instance 🚀 |
 
-## Contributing
+### Packaging Standalone & Installer
+```bash
+# From the /app directory:
+npm run build:electron
+```
 
-If you want to change the behaviour of the HTTP Toolkit desktop shell (but not its contents), change how it's built, or add a new target platform or format, then you're in the right place :+1:.
+The output executables will be generated in `app/dist/`:
+- **Standalone Folder**: `app/dist/win-unpacked/HTTP Toolkit.exe`
+- **Installer Package**: `app/dist/HTTP-Toolkit-1.26.1.exe`
 
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started contributing to this repo.
+---
 
-## License
+## Running with Logs 🔍
 
-The HTTP Toolkit desktop application source code is licensed under AGPL-3.0, [as documented in this repo](/LICENSE).
+To inspect runtime startup, server IPC, and diagnostic output:
+```powershell
+cd app\dist\win-unpacked
+.\'HTTP Toolkit.exe' --enable-logging
+```
 
-The binary downloads available in this repo or from [httptoolkit.com](https://httptoolkit.com) however may be used under one of two licenses:
+---
 
-* [AGPL-3.0](/LICENSE), for those who want to modify and redistribute them, within the constraints of that license.
-* [Creative Commons Attribution-NoDerivatives 4.0 International License](https://creativecommons.org/licenses/by-nd/4.0/) for those who don't need those rights and want to avoid any concerns about AGPL licensing.
+## License 📄
+
+This project is licensed under AGPL-3.0.

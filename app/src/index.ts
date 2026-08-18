@@ -4,6 +4,7 @@ const DEV_MODE = process.env.HTK_DEV === 'true';
 import { logError, addBreadcrumb } from './errors.ts';
 
 import { spawn, ChildProcess } from 'child_process';
+import * as http from 'http';
 import * as os from 'os';
 import { promises as fs, createWriteStream, WriteStream } from 'fs'
 import * as path from 'path';
@@ -37,7 +38,7 @@ const isWindows = os.platform() === 'win32';
 let appUrl = process.env.APP_URL;
 const getAppUrl = () => {
     if (appUrl) return appUrl;
-    return `http://127.0.0.1:45457/index.html`;
+    return `http://127.0.0.1:${serverPorts ? serverPorts.serverPort : 45457}/index.html`;
 };
 const hasTrustedOrigin = (url: URL) => {
     if (appUrl) return url.origin === new URL(appUrl).origin;
@@ -80,6 +81,34 @@ const pickServerPorts = async (): Promise<ServerPorts> => {
         getPort({ port: portNumbers(SERVER_PORT_RANGE_START, SERVER_PORT_RANGE_END) })
     ]);
     return { serverPort, mockttpPort };
+};
+
+const waitForServerReady = async (port: number, token: string, maxWaitMs = 60000): Promise<boolean> => {
+    const startTime = Date.now();
+    while (Date.now() - startTime < maxWaitMs) {
+        const isReady = await new Promise<boolean>((resolve) => {
+            const req = http.get(`http://127.0.0.1:${port}/index.html?authToken=${encodeURIComponent(token)}`, {
+                timeout: 1000
+            }, (res) => {
+                if (res.statusCode && res.statusCode >= 200 && res.statusCode < 400) {
+                    res.resume();
+                    resolve(true);
+                } else {
+                    res.resume();
+                    resolve(false);
+                }
+            });
+            req.on('error', () => resolve(false));
+            req.on('timeout', () => {
+                req.destroy();
+                resolve(false);
+            });
+        });
+
+        if (isReady) return true;
+        await new Promise(r => setTimeout(r, 200));
+    }
+    return false;
 };
 
 // Resolved before any window or server is started, to inject into the renderer
@@ -221,7 +250,7 @@ if (!amMainInstance) {
 
             try {
                 await stopServer(server, AUTH_TOKEN, serverPorts.serverPort);
-            } catch (error) {
+            } catch (error: any) {
                 console.log('Failed to kill server', error);
                 logError(error);
             } finally {
@@ -301,6 +330,14 @@ if (!amMainInstance) {
             });
         });
 
+        let loadFailureCount = 0;
+        let uiHasLoaded = false;
+
+        contents.on('did-finish-load', () => {
+            uiHasLoaded = true;
+            loadFailureCount = 0;
+        });
+
         contents.on('did-fail-load', (
             _event,
             code,
@@ -310,8 +347,19 @@ if (!amMainInstance) {
         ) => {
             if (!isMainFrame) return; // Just in case
 
+            loadFailureCount++;
             const { protocol, host, pathname } = new URL(url);
             const baseURL = `${protocol}//${host}${pathname}`;
+
+            writeLog(`did-fail-load: ${baseURL} (${code}: ${description}), attempt ${loadFailureCount}`);
+
+            // During initial startup, retry silently without throwing blocking alert popups
+            if (!uiHasLoaded && loadFailureCount <= 10) {
+                setTimeout(() => {
+                    if (!contents.isDestroyed()) contents.reload();
+                }, 1000);
+                return;
+            }
 
             showErrorAlert(
                 "UI load failed",
@@ -445,6 +493,8 @@ if (!amMainInstance) {
         const envVars = {
             ...process.env,
 
+            HTTPTOOLKIT_SERVER_REDIRECTED: '1',
+            HTTPTOOLKIT_SERVER_DISABLE_REDIRECT: '1',
             HTK_SERVER_TOKEN: AUTH_TOKEN,
             HTK_DESKTOP_EXE: app.getPath('exe'),
             HTK_DESKTOP_RESOURCES: RESOURCES_PATH,
@@ -680,18 +730,8 @@ if (!amMainInstance) {
 
     Promise.all([appReady.promise, portsResolved.promise, uiCacheReady]).then(async () => {
         Menu.setApplicationMenu(getMenu(windows, openNewWindow));
-        const net = await import('net');
-        for (let i = 0; i < 30; i++) {
-            const open = await new Promise((resolve) => {
-                const client = net.connect({ port: serverPorts.serverPort }, () => {
-                    client.end();
-                    resolve(true);
-                });
-                client.on('error', () => resolve(false));
-            });
-            if (open) break;
-            await new Promise((r) => setTimeout(r, 200));
-        }
+        writeLog(`Waiting for server on port ${serverPorts.serverPort}...`);
+        await waitForServerReady(serverPorts.serverPort, AUTH_TOKEN, 45000);
         createWindow();
     });
 

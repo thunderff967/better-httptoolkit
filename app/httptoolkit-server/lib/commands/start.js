@@ -10,13 +10,10 @@ const net = tslib_1.__importStar(require("net"));
 const semver = tslib_1.__importStar(require("semver"));
 const constants_1 = require("../constants");
 function maybeBundleImport(moduleName) {
-    if (constants_1.IS_PROD_BUILD || process.env.OCLIF_TS_NODE === '0') {
-        // Full built package: load the bundle
-        return require('../../bundle/' + moduleName);
-    }
-    else {
-        // Npm or dev: run the raw code
+    try {
         return require('../' + moduleName);
+    } catch (e) {
+        return require('../../bundle/' + moduleName);
     }
 }
 const { initErrorTracking, logError } = maybeBundleImport('error-tracking');
