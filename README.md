@@ -1,40 +1,40 @@
-# Better HTTP Toolkit
+<h1 align="center">Better HTTP Toolkit</h1>
 
-A modified, offline-ready version of HTTP Toolkit.
+<p align="center">
+  <strong>A modded, offline-ready build of HTTP Toolkit.</strong>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
+  <a href="https://www.electronjs.org/">
+    <img src="https://img.shields.io/badge/Electron-Latest-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
+  </a>
+  <img src="https://img.shields.io/badge/status-active-22C55E?style=for-the-badge" alt="Status">
+</p>
+
+---
 
 ## Overview
 
-This repository contains modifications to HTTP Toolkit designed to enable offline use, bypass remote licensing constraints, and extend intercept capabilities with deep-transform options. All changes are applied directly to the codebase.
+This repository contains a modified, offline-ready build of HTTP Toolkit.
 
-## Key Modifications
+The project extends the original application with additional offline functionality and advanced in-flight request/response body transformations.
 
-* **Offline Capabilities**:
-  * Bypasses remote billing and authentication servers, automatically enabling Pro features locally.
-  * Neutralized background `/get-prices` polling loops.
-  * Telemetry reporting endpoints (PostHog and Sentry) are disabled.
-* **Offline Android Interception**:
-  * Bundles the Android client APK (`httptoolkit-v1.6.0.apk`) locally inside the build.
-  * Rewritten APK delivery logic to use local assets rather than fetching from GitHub or CDNs.
-  * Patched ADB/Frida client commands to prevent connection crashes and ensure reliable certificate injection.
-* **Deep Transformation Engine**:
-  * Added in-flight request and response body manipulation supporting nesting and layers.
-  * Supported formats: AES-128/256 (CBC, GCM, CTR, ECB), Protobuf wire streams, URL-encoded forms, Base64, Hex, and Gzip.
-  * Configurable declaratively via the JSON rule editor in the user interface.
-* **Theme System**:
-  * Added Nord Light, Sepia Light, Midnight Dark, and Dracula Dark presets.
-  * Theme selection is persisted locally via localStorage.
-* **Dependency Bundling**:
-  * Bundles pre-built native binaries (`node-datachannel` and `registry-js`) to support direct Windows compilation.
+---
 
-## Build and Run
+## Features & Improvements
 
-### Prerequisites
+* **Multi-Layer Deep Transformation Engine**: In-flight decryption, modification, and re-encoding for encrypted/encoded payloads (supporting AES-128/256 CBC/GCM, Protobuf wire streams, URL-encoded forms, Base64, Hex, and Gzip).
+* **Theme System**: Persisted theme configurations via localStorage (Nord Light, Sepia Light, Midnight Dark, and Dracula Dark presets).
+* **Offline-Ready**: Locally bypasses billing and authentication servers, automatically enabling Pro features offline.
+* **Telemetry Neutralized**: Blocked Sentry error reporting and PostHog tracking loops to prevent network request warnings and errors.
+* **Pre-bundled Dependencies**: Packages pre-built native binaries (`node-datachannel`, `registry-js`) to ensure reliable local execution on Windows.
 
-* Node.js (v24 recommended)
-* npm
+---
+
+## Build & Run
 
 ### Building
-
 ```bash
 cd app
 npm install
@@ -42,18 +42,41 @@ npm run build:electron
 ```
 
 ### Running
-
-The built binary will be available in the `app/dist/win-unpacked/` directory.
-
 ```powershell
-cd app/dist/win-unpacked
-./"HTTP Toolkit.exe"
+cd app\dist\win-unpacked
+.\"HTTP Toolkit.exe"
 ```
+
+---
+
+## Roadmap
+
+| Area | Planned Work |
+|---|---|
+| **Frida** | Updated scripts and improved script management |
+| **Android Agent** | Compatibility and reliability improvements for modern Android |
+| **Modify Rules** | Additional multi-protocol transcoders and schema generators |
+| **Performance** | Startup time, memory optimization, and tree-shaking |
+
+---
 
 ## Contributing
 
-Pull requests are welcome. Please keep changes self-contained and focused on bug fixes or core enhancements to the proxy, Frida scripts, or UI compatibility.
+Pull requests are welcome.
+
+Small, self-contained changes are preferred. If you are planning a larger change, open an issue first so it can be discussed.
+
+Areas that need work include:
+
+- Frida
+- Android agent
+- Electron
+- Performance
+- Documentation
+- General bug fixes
+
+---
 
 ## Disclaimer
 
-This is an unofficial modification of HTTP Toolkit. It is not affiliated with, maintained by, or endorsed by the official HTTP Toolkit project or its developers.
+This is an unofficial modification of HTTP Toolkit and is not affiliated with or endorsed by the original project.
