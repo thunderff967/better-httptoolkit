@@ -50,18 +50,6 @@ jobs:
           npm install
           npm run build:electron
 
-      - name: Copy Offline APK to Unpacked Directory
-        shell: pwsh
-        run: |
-          $src = "app/httptoolkit-server/assets/httptoolkit.apk"
-          $destDir1 = "app/dist/win-unpacked/resources/app.asar.unpacked/httptoolkit-server/assets"
-          $destDir2 = "app/dist/win-unpacked/resources/app.asar.unpacked/httptoolkit-server"
-          
-          New-Item -ItemType Directory -Force -Path $destDir1
-          Copy-Item -Path $src -Destination "$destDir1/httptoolkit.apk" -Force
-          Copy-Item -Path $src -Destination "$destDir2/httptoolkit.apk" -Force
-          Write-Output "APK successfully packaged into unpacked folder."
-
       - name: Create Portable Zip Archive
         shell: pwsh
         run: |
