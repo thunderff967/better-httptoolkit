@@ -36,7 +36,7 @@ jobs:
           if (!(Test-Path $apkPath)) {
             New-Item -ItemType Directory -Force -Path $apkDir
             Write-Output "Downloading offline httptoolkit.apk (v1.6.0)..."
-            Invoke-WebRequest -Uri "https://github.com/httptoolkit/httptoolkit-android/releases/download/v1.6.0/httptoolkit.apk" -OutFile $apkPath
+            curl.exe -L -o $apkPath "https://github.com/httptoolkit/httptoolkit-android/releases/download/v1.6.0/httptoolkit.apk"
           }
           # Double check size to ensure download succeeded
           if ((Get-Item $apkPath).Length -lt 10MB) {
