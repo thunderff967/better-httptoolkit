@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       tag_name:
-        description: 'Release Tag (e.g. v1.26.1-mod.1.1.0)'
+        description: 'Release Tag (e.g. v1.26.1-mod.1.1.1)'
         required: true
-        default: 'v1.26.1-mod.1.1.0'
+        default: 'v1.26.1-mod.1.1.1'
   push:
     tags:
       - 'v*'
@@ -28,11 +28,39 @@ jobs:
         with:
           node-version: 24
 
+      - name: Ensure Offline APK exists
+        shell: pwsh
+        run: |
+          $apkDir = "app/httptoolkit-server/assets"
+          $apkPath = "$apkDir/httptoolkit.apk"
+          if (!(Test-Path $apkPath)) {
+            New-Item -ItemType Directory -Force -Path $apkDir
+            Write-Output "Downloading offline httptoolkit.apk (v1.6.0)..."
+            Invoke-WebRequest -Uri "https://github.com/httptoolkit/httptoolkit-android/releases/download/v1.6.0/httptoolkit-v1.6.0.apk" -OutFile $apkPath
+          }
+          # Double check size to ensure download succeeded
+          if ((Get-Item $apkPath).Length -lt 10MB) {
+            throw "Downloaded APK file is too small or corrupted."
+          }
+          Write-Output "Offline APK is ready."
+
       - name: Install dependencies & Build Electron
         run: |
           cd app
           npm install
           npm run build:electron
+
+      - name: Copy Offline APK to Unpacked Directory
+        shell: pwsh
+        run: |
+          $src = "app/httptoolkit-server/assets/httptoolkit.apk"
+          $destDir1 = "app/dist/win-unpacked/resources/app.asar.unpacked/httptoolkit-server/assets"
+          $destDir2 = "app/dist/win-unpacked/resources/app.asar.unpacked/httptoolkit-server"
+          
+          New-Item -ItemType Directory -Force -Path $destDir1
+          Copy-Item -Path $src -Destination "$destDir1/httptoolkit.apk" -Force
+          Copy-Item -Path $src -Destination "$destDir2/httptoolkit.apk" -Force
+          Write-Output "APK successfully packaged into unpacked folder."
 
       - name: Create Portable Zip Archive
         shell: pwsh
@@ -44,9 +72,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
-          name: Better HTTP Toolkit v1.26.1 (Mod v1.1.0)
+          name: Better HTTP Toolkit v1.26.1 (Mod v1.1.1)
           draft: true
           prerelease: false
+          body: |
+            ### 🔧 1 Major Bug Fix
+            - **Android Via ADB / Frida Fix**: Resolved the critical `TypeError: e.on is not a function` bug that crashed the ADB connection when attempting to install the Android interceptor APK.
+            - **Deep Transform Pipeline (AES + Protobuf)**: Fully resolved the request transform `asBuffer` crash and deep-transform require module paths. You can now mutate JSON & Protobuf fields on the fly.
+            
+            ### 🚀 2 Minor Bug Fixes and Stability Improvements
+            - **Telemetry Cleanup (Sentry & PostHog)**: Completely neutralized Sentry and PostHog tracking, eliminating constant `403 Forbidden` console warnings when running offline.
+            - **Pro Tier WebSocket Auth**: Fixed websocket validation so the UI operates in full Pro tier mode offline.
+            - **Sourcemap `.map` Router Patch**: Fixed a bug where the server returned the main index HTML for missing sourcemap requests.
+            - **Offline Package bundling**: Bundled the latest Android client APK directly in the local application package.
           files: |
             app/dist/HTTP-Toolkit-1.26.1.exe
             app/dist/Better-HTTP-Toolkit-1.26.1-Portable.zip

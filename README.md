@@ -1,94 +1,59 @@
-<h1 align="center">Better HTTP Toolkit</h1>
+# Better HTTP Toolkit
 
-<p align="center">
-  <strong>A modded, offline-ready build of HTTP Toolkit. 🚀</strong>
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/platform-Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white" alt="Windows">
-  <a href="https://www.electronjs.org/">
-    <img src="https://img.shields.io/badge/Electron-Latest-47848F?style=for-the-badge&logo=electron&logoColor=white" alt="Electron">
-  </a>
-  <img src="https://img.shields.io/badge/status-active-22C55E?style=for-the-badge" alt="Status">
-</p>
-
----
+A modified, offline-ready version of HTTP Toolkit.
 
 ## Overview
 
-This repository contains a modified, offline-ready build of HTTP Toolkit.
+This repository contains modifications to HTTP Toolkit designed to enable offline use, bypass remote licensing constraints, and extend intercept capabilities with deep-transform options. All changes are applied directly to the codebase.
 
-The project is intended to extend the original application with additional functionality while keeping development straightforward. Changes are made directly where necessary instead of relying on surface-level patches.
+## Key Modifications
 
-Current work includes maintaining an offline-ready build, improving customization, and adding advanced protocol & crypto transformation capabilities.
+* **Offline Capabilities**:
+  * Bypasses remote billing and authentication servers, automatically enabling Pro features locally.
+  * Neutralized background `/get-prices` polling loops.
+  * Telemetry reporting endpoints (PostHog and Sentry) are disabled.
+* **Offline Android Interception**:
+  * Bundles the Android client APK (`httptoolkit-v1.6.0.apk`) locally inside the build.
+  * Rewritten APK delivery logic to use local assets rather than fetching from GitHub or CDNs.
+  * Patched ADB/Frida client commands to prevent connection crashes and ensure reliable certificate injection.
+* **Deep Transformation Engine**:
+  * Added in-flight request and response body manipulation supporting nesting and layers.
+  * Supported formats: AES-128/256 (CBC, GCM, CTR, ECB), Protobuf wire streams, URL-encoded forms, Base64, Hex, and Gzip.
+  * Configurable declaratively via the JSON rule editor in the user interface.
+* **Theme System**:
+  * Added Nord Light, Sepia Light, Midnight Dark, and Dracula Dark presets.
+  * Theme selection is persisted locally via localStorage.
+* **Dependency Bundling**:
+  * Bundles pre-built native binaries (`node-datachannel` and `registry-js`) to support direct Windows compilation.
 
----
+## Build and Run
 
-## Features & Improvements ✨
+### Prerequisites
 
-- **⚡ Multi-Layer Deep Transformation Engine**: Automated in-flight decryption, modification, and re-encoding for encrypted payloads (AES-128/192/256 CBC/GCM/CTR/ECB), Protobuf wire streams, URL-encoded forms, and Base64/Hex/Gzip.
-- **🎨 Enhanced Theme System**: 4 new built-in theme presets (**Nord Light**, **Sepia Light**, **Midnight Dark**, **Dracula Dark**) + persistent custom theme support with `localStorage` saving.
-- **🛡️ 100% Offline-Ready**: Permanently unlocked Pro features without remote server dependencies or account lockouts.
-- **🔇 Neutralized Polling**: Stopped background `/get-prices` loop spam and 403 network errors.
-- **📦 Pre-bundled Binaries**: Native NAPI binaries (`node-datachannel`, `registry-js`) pre-packaged for seamless Windows execution.
-
----
-
-## Current Status 🛠️
-
-Fixed the identified startup, theme, and transformation issues:
-
-- **Logout issue:** ✅ Fixed — Neutralized `logOut()` in `AccountStore` to prevent accidental account lockout.
-- **Launch issues:** ✅ Fixed — Dynamic CORS resolution in the local server and automatic `waitForServerReady` polling.
-- **Theme issues:** ✅ Fixed — Fixed custom theme persistence and added 4 new presets.
-- **Transformation engine:** ✅ Built — Full support for multi-layer automatic request/response body mutation.
-
----
-
-## Build & Run 💻
+* Node.js (v24 recommended)
+* npm
 
 ### Building
+
 ```bash
 cd app
+npm install
 npm run build:electron
 ```
 
 ### Running
+
+The built binary will be available in the `app/dist/win-unpacked/` directory.
+
 ```powershell
-cd app\dist\win-unpacked
-.\'HTTP Toolkit.exe'
+cd app/dist/win-unpacked
+./"HTTP Toolkit.exe"
 ```
 
----
+## Contributing
 
-## Roadmap 📋
+Pull requests are welcome. Please keep changes self-contained and focused on bug fixes or core enhancements to the proxy, Frida scripts, or UI compatibility.
 
-| Area | Planned Work |
-|---|---|
-| **Frida** | Updated scripts and improved script management 💉 |
-| **Android Agent** | Compatibility and reliability improvements for modern Android 🤖 |
-| **Modify Rules** | Additional multi-protocol transcoders and schema generators ⚙️ |
-| **Performance** | Startup time, memory optimization, and tree-shaking ⚡ |
+## Disclaimer
 
----
-
-## Contributing 🤝
-
-Pull requests are welcome.
-
-Small, self-contained changes are preferred. If you're planning a larger change, open an issue first so it can be discussed.
-
-Areas that need work include:
-
-- Frida
-- Android agent
-- Electron
-- Performance
-- Documentation
-- General bug fixes
-
----
-
-## Disclaimer ⚠️
-
-This is an unofficial modification of HTTP Toolkit and is not affiliated with or endorsed by the original project.
+This is an unofficial modification of HTTP Toolkit. It is not affiliated with, maintained by, or endorsed by the official HTTP Toolkit project or its developers.
