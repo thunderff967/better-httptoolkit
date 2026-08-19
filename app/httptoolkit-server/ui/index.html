@@ -75,54 +75,7 @@
 
                 return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
             };
-        }</script><script defer="defer" src="mockttp.js"></script><script defer="defer" src="apis.js"></script><script defer="defer" src="vendors-node_modules_httptoolkit_httpsnippet_src_index_js-node_modules_ajv_dist_ajv_js-node_m-0597f9.js"></script><script defer="defer" src="vendors-node_modules_bn_js_lib_bn_js-node_modules_path-browserify_index_js-node_modules_reada-421888.js"></script><script defer="defer" src="vendors-node_modules_ethersproject_abi_lib_esm_abi-coder_js-node_modules_fortawesome_free-bra-b884c5.js"></script><script defer="defer" src="main.js"></script></head><body>
-<script>
-  (function() {
-    window.showToolkitStartupMode = function() {
-      if (document.getElementById("startup-modal-container")) return;
-      
-      const modal = document.createElement("div");
-      modal.id = "startup-modal-container";
-      modal.style.cssText = "position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #1e1e1e; z-index: 9999999; display: flex; align-items: center; justify-content: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #cccccc;";
-      
-      modal.innerHTML = `
-        <div style="background: #252526; border: 1px solid #3c3c3c; border-radius: 6px; padding: 32px; max-width: 500px; width: 90%; box-sizing: border-box;">
-          <div style="font-size: 20px; font-weight: 600; color: #ffffff; margin-bottom: 8px;">Select Launch Profile</div>
-          <div style="font-size: 13px; color: #888888; margin-bottom: 24px;">Choose how HTTP Toolkit should initialize:</div>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button onclick="selectStartupMode('reliable')" style="background: #2d2d2d; border: 1px solid #3c3c3c; border-radius: 4px; padding: 16px; cursor: pointer; text-align: left; color: #cccccc; outline: none; transition: background 0.1s ease, border-color 0.1s ease;" onmouseover="this.style.background='#333333'; this.style.borderColor='#007acc';" onmouseout="this.style.background='#2d2d2d'; this.style.borderColor='#3c3c3c';">
-              <div style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">Reliable Toolkit Profile</div>
-              <div style="font-size: 12px; color: #888888; line-height: 1.4;">Launches pre-activated and logged in. Fully offline, no setup or credentials required (Default Pro tier).</div>
-            </button>
-            <button onclick="selectStartupMode('mock')" style="background: #2d2d2d; border: 1px solid #3c3c3c; border-radius: 4px; padding: 16px; cursor: pointer; text-align: left; color: #cccccc; outline: none; transition: background 0.1s ease, border-color 0.1s ease;" onmouseover="this.style.background='#333333'; this.style.borderColor='#007acc';" onmouseout="this.style.background='#2d2d2d'; this.style.borderColor='#3c3c3c';">
-              <div style="font-size: 14px; font-weight: 600; color: #ffffff; margin-bottom: 4px;">Mock Toolkit Profile</div>
-              <div style="font-size: 12px; color: #888888; line-height: 1.4;">Launches in a standard logged-out state. Test verification code logins and register mock accounts offline.</div>
-            </button>
-          </div>
-        </div>
-      `;
-      
-      window.selectStartupMode = function(mode) {
-        localStorage.setItem("toolkit_startup_mode", mode);
-        localStorage.removeItem("last_jwt");
-        localStorage.removeItem("tokens");
-        window.location.reload();
-      };
-      
-      document.body.appendChild(modal);
-    };
-    
-    window.clearToolkitStartupMode = function() {
-      localStorage.removeItem("toolkit_startup_mode");
-      localStorage.removeItem("last_jwt");
-      localStorage.removeItem("tokens");
-      window.showToolkitStartupMode();
-    };
-    
-    localStorage.setItem("toolkit_startup_mode", "reliable");
-  })();
-</script>
-<div id="app"></div><div id="app-loading-placeholder"><img id="initial-logo" src="a219baaae146da8ee8f5.png"> <img id="progress-logo" src="a219baaae146da8ee8f5.png"><div id="app-loading-error"></div><div id="app-loading-error-details"></div></div><script>let progressElement = document.getElementById('progress-logo');
+        }</script><script defer="defer" src="mockttp.js"></script><script defer="defer" src="apis.js"></script><script defer="defer" src="vendors-node_modules_httptoolkit_httpsnippet_src_index_js-node_modules_ajv_dist_ajv_js-node_m-0597f9.js"></script><script defer="defer" src="vendors-node_modules_bn_js_lib_bn_js-node_modules_path-browserify_index_js-node_modules_reada-421888.js"></script><script defer="defer" src="vendors-node_modules_ethersproject_abi_lib_esm_abi-coder_js-node_modules_fortawesome_free-bra-b884c5.js"></script><script defer="defer" src="main.js"></script></head><body><div id="app"></div>    <div id="app-loading-placeholder"><img id="initial-logo" src="a219baaae146da8ee8f5.png"> <img id="progress-logo" src="a219baaae146da8ee8f5.png"><div id="app-loading-error"></div><div id="app-loading-error-details"></div></div><script>let progressElement = document.getElementById('progress-logo');
         let errorElement = document.getElementById('app-loading-error');
         let errorDetailsElement = document.getElementById('app-loading-error-details');
 
@@ -194,14 +147,10 @@
 
                 alert(
                     "HTTP Toolkit is failing to start, due to an unknown significant compatibility error." +
-                    "
-
-" +
+                    "\n\n" +
                     "This may mean your HTTP Toolkit installation is very outdated and requires a manual " +
                     "update to continue working. Please try reinstalling the app from httptoolkit.com." +
-                    "
-
-" +
+                    "\n\n" +
                     "If that doesn't work, please report this bug at github.com/httptoolkit/httptoolkit to " +
                     "get more help."
                 );
