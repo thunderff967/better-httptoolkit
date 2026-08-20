@@ -3624,7 +3624,230 @@
     `}
 `;let bS=class extends YT{constructor(){super(...arguments),this.transformRequest=this.props.step.transformRequest||{},this.transformResponse=this.props.step.transformResponse||{},this.transformField=e=>t=>(0,w.action)(n=>{this[e]=Object.assign(Object.assign({},this[e]),{[t]:n}),this.updateStep()})}render(){var e,t;return b.createElement(XT,null,b.createElement(mS,null,"Request Transforms:"),b.createElement(xS,{replacementMethod:null===(e=this.transformRequest)||void 0===e?void 0:e.replaceMethod,onChange:this.transformField("transformRequest")("replaceMethod")}),b.createElement(ES,{transform:this.transformRequest,onChange:this.transformField("transformRequest")}),b.createElement(PS,{type:"request",transform:this.transformRequest,onChange:this.transformField("transformRequest")}),b.createElement(kS,{type:"request",transform:this.transformRequest,onChange:this.transformField("transformRequest")}),b.createElement(gS,null),b.createElement(mS,null,"Response Transforms:"),b.createElement(SS,{replacementStatus:null===(t=this.transformResponse)||void 0===t?void 0:t.replaceStatus,onChange:this.transformField("transformResponse")("replaceStatus")}),b.createElement(PS,{type:"response",transform:this.transformResponse,onChange:this.transformField("transformResponse")}),b.createElement(kS,{type:"response",transform:this.transformResponse,onChange:this.transformField("transformResponse")}))}updateStep(){this.props.onChange(new ca(this.props.rulesStore,this.transformRequest,this.transformResponse))}};QT([w.observable],bS.prototype,"transformRequest",void 0),QT([w.observable],bS.prototype,"transformResponse",void 0),bS=QT([(0,E.WQ)("rulesStore"),E.PA],bS);const xS=e=>{var t;return b.createElement(fS,{active:!!e.replacementMethod},b.createElement(vS,{"aria-label":"Select how the method should be transformed",value:null!==(t=e.replacementMethod)&&void 0!==t?t:"none",onChange:t=>{const n=t.target.value;"none"===n?e.onChange(void 0):e.onChange(n)}},b.createElement("option",{value:"none"},"Use the original request method"),Ps.map(e=>b.createElement("option",{key:e,value:e},"Replace the request method with ",e))))},wS=["setProtocol","replaceHost","matchReplaceHost","matchReplacePath","matchReplaceQuery"],ES=e=>{const t=wS.some(t=>!!e.transform[t]),[n,r]=b.useState(t);return b.createElement(fS,{active:n},b.createElement(vS,{"aria-label":"Select whether the request URL should be transformed",value:n?"modify":"none",onChange:t=>{"none"===t.target.value?(wS.forEach(t=>e.onChange(t)(void 0)),r(!1)):r(!0)}},b.createElement("option",{value:"none"},"Use the original URL"),b.createElement("option",{value:"modify"},"Modify the request URL")),n&&b.createElement(b.Fragment,null,b.createElement(mS,null,"Request URL modifications"),b.createElement(fS,{active:!!e.transform.setProtocol},b.createElement(vS,{"aria-label":"Select how the request protocol should be transformed",value:e.transform.setProtocol||"none",onChange:t=>{const n=t.target.value;"none"===n?e.onChange("setProtocol")(void 0):e.onChange("setProtocol")(n)}},b.createElement("option",{value:"none"},"Use the original request protocol"),b.createElement("option",{value:"http"},"Change the request protocol to HTTP"),b.createElement("option",{value:"https"},"Change the request protocol to HTTPS"))),b.createElement(CS,{transform:e.transform,onChange:e.onChange}),b.createElement(TS,{partName:"path",transform:e.transform.matchReplacePath,onChange:e.onChange("matchReplacePath")}),b.createElement(TS,{partName:"query",transform:e.transform.matchReplaceQuery,onChange:e.onChange("matchReplaceQuery")})))},CS=e=>{var t;const n=e.transform.replaceHost||e.transform.matchReplaceHost,r=e.transform.replaceHost?"replaceHost":e.transform.matchReplaceHost?"matchReplaceHost":"none",[o,s]=b.useState(null===(t=null==n?void 0:n.updateHostHeader)||void 0===t||t);return b.createElement(fS,{active:"none"!==r},b.createElement(vS,{"aria-label":"Select how the request host should be transformed",value:null!=r?r:"none",onChange:t=>{const n=t.target.value;"none"===n?(e.onChange("replaceHost")(void 0),e.onChange("matchReplaceHost")(void 0)):"replaceHost"===n?(e.onChange("matchReplaceHost")(void 0),e.onChange("replaceHost")({targetHost:"",updateHostHeader:!0})):(e.onChange("replaceHost")(void 0),e.onChange("matchReplaceHost")({replacements:[],updateHostHeader:!0}))}},b.createElement("option",{value:"none"},"Use the original request host"),b.createElement("option",{value:"replaceHost"},"Replace the request host"),b.createElement("option",{value:"matchReplaceHost"},"Match & replace parts of the request host")),"replaceHost"===r&&b.createElement(yS,null,b.createElement(mS,null,"Replacement host"),b.createElement(rS,{placeholder:"example.com",spellCheck:!1,value:e.transform.replaceHost.targetHost,onChange:t=>{try{const n=t.target.value;if(e.onChange("replaceHost")({targetHost:t.target.value,updateHostHeader:o}),!n)throw new Error("A replacement host is required");t.target.setCustomValidity("")}catch(e){const n=Pt(e).message;t.target.setCustomValidity(n)}t.target.reportValidity()}})),"matchReplaceHost"===r&&b.createElement($S,{replacements:e.transform.matchReplaceHost.replacements,updateReplacements:t=>{e.onChange("matchReplaceHost")({replacements:t,updateHostHeader:o})},valueValidation:e=>!e.includes("/")||`Request transform replacement hosts cannot include a path or protocol, but "${e}" does`}),"none"!==r&&b.createElement(yS,null,b.createElement(mS,null,"Host header"),b.createElement(hS,{messageType:"request",updateHostHeader:!!o,onUpdateHeaderChange:s})))},TS=e=>{const t=void 0!==e.transform?"matchReplace":"none";return b.createElement(fS,{active:"none"!==t},b.createElement(vS,{"aria-label":`Select how the ${e.partName} should be transformed`,value:null!=t?t:"none",onChange:t=>{"none"===t.target.value?e.onChange(void 0):e.onChange([])}},b.createElement("option",{value:"none"},"Use the original request ",e.partName),b.createElement("option",{value:"matchReplace"},"Match & replace parts of the request ",e.partName)),"matchReplace"===t&&b.createElement($S,{replacements:e.transform,updateReplacements:e.onChange}))},SS=e=>{const t=void 0!==e.replacementStatus?"replace":"none";return b.createElement(fS,{active:"none"!==t},b.createElement(vS,{"aria-label":"Select how the status should be transformed",value:null!=t?t:"none",onChange:t=>{"none"===t.target.value?e.onChange(void 0):e.onChange(200)}},b.createElement("option",{value:"none"},"Use the original response status"),b.createElement("option",{value:"replace"},"Replace the response status")),"replace"===t&&b.createElement(yS,null,b.createElement(OE,{statusCode:e.replacementStatus,onChange:e.onChange,httpVersion:2,statusMessage:void 0})))};let PS=VT=class extends b.Component{constructor(){super(...arguments),this.convertResultFromRawHeaders=e=>"updateHeaders"===this.selected?cn(e.map(([e,t])=>[e,""===t?void 0:t])):cn(e),this.onTransformTypeChange=e=>{const t=e.currentTarget.value;this.clearValues(),"none"!==t&&this.props.onChange(t)({})}}get selected(){var e;return null!==(e=y.find(VT.FIELDS,e=>void 0!==this.props.transform[e]))&&void 0!==e?e:"none"}get headers(){return"none"===this.selected?{}:this.props.transform[this.selected]||{}}render(){const{type:e}=this.props,{selected:t,convertResultFromRawHeaders:n,onTransformTypeChange:r,setHeadersValue:o}=this;return b.createElement(fS,{active:"none"!==t},b.createElement(vS,{"aria-label":`Select how the ${e} headers should be transformed`,value:t,onChange:r},b.createElement("option",{value:"none"},"Use the original ",e," headers"),b.createElement("option",{value:"updateHeaders"},"Override specific ",e," headers"),b.createElement("option",{value:"replaceHeaders"},"Replace all ",e," headers")),"none"!==t&&b.createElement(yS,null,b.createElement(wE,{headers:this.headers,convertToRawHeaders:ln,convertFromRawHeaders:n,onChange:o,allowEmptyValues:"updateHeaders"===t})))}setHeadersValue(e){this.clearValues(),"none"!==this.selected&&this.props.onChange(this.selected)(e)}clearValues(){VT.FIELDS.forEach(e=>this.props.onChange(e)(void 0))}};PS.FIELDS=["replaceHeaders","updateHeaders"],QT([w.computed],PS.prototype,"selected",null),QT([w.computed],PS.prototype,"headers",null),QT([w.action.bound],PS.prototype,"setHeadersValue",null),QT([w.action.bound],PS.prototype,"onTransformTypeChange",void 0),QT([w.action.bound],PS.prototype,"clearValues",null),PS=VT=QT([E.PA],PS);let kS=KT=class extends b.Component{constructor(){super(...arguments),this.onTransformTypeChange=e=>{const t=e.currentTarget.value;if(this.clearValues(),"updateJsonBody"===t)this.props.onChange("updateJsonBody")({});else if("patchJsonBody"===t)this.props.onChange("patchJsonBody")([]);else if("replaceBody"===t)this.props.onChange("replaceBody")("");else if("replaceBodyFromFile"===t)this.props.onChange("replaceBodyFromFile")("");else if("matchReplaceBody"===t)this.props.onChange("matchReplaceBody")([]);else if("deepTransformBody"===t)this.props.onChange("deepTransformBody")({pipeline:["base64","json"],mutate:{}});else{if("none"===t)return;Rt(t)}},this.selectBodyReplacementFile=()=>GT(this,void 0,void 0,function*(){const e=yield Pp("path",[]);e&&(0,w.runInAction)(()=>{this.clearValues(),this.props.onChange("replaceBodyFromFile")(e)})})}get bodyReplacementBuffer(){return _t(this.props.transform.replaceBody)}render(){var e;const{type:t,transform:n}=this.props,{bodyReplacementBuffer:r,onTransformTypeChange:o,setBodyReplacement:s,selectBodyReplacementFile:a,setJsonBodyUpdate:i,setJsonBodyPatch:l}=this,c=Be("^1.18.0"),d=null!==(e=y.find(KT.FIELDS,e=>void 0!==n[e]))&&void 0!==e?e:"none";return b.createElement(fS,{active:"none"!==d},b.createElement(vS,{"aria-label":`Select how the ${t} body should be transformed`,value:d,onChange:o},b.createElement("option",{value:"none"},"Use the original ",t," body"),b.createElement("option",{value:"replaceBody"},"Replace the ",t," body with a fixed value"),b.createElement("option",{value:"replaceBodyFromFile"},"Replace the ",t," body with a file"),b.createElement("option",{value:"updateJsonBody"},"Update a JSON ",t," body by merging data"),c&&b.createElement(b.Fragment,null,b.createElement("option",{value:"patchJsonBody"},"Update a JSON ",t," body using JSON patch"),b.createElement("option",{value:"matchReplaceBody"},"Match & replace text in the ",t," body"),b.createElement("option",{value:"deepTransformBody"},"Deep transform (AES / Protobuf / URL / Base64)"))),"replaceBody"===d?b.createElement(RS,{type:t,body:r,updateBody:s}):"replaceBodyFromFile"===d?b.createElement(yS,null,b.createElement(iS,null,b.createElement(lS,{onClick:a},n.replaceBodyFromFile?"Change file":b.createElement(b.Fragment,null,"Select file ",b.createElement(ds,null))),n.replaceBodyFromFile&&b.createElement(cS,null,n.replaceBodyFromFile))):"updateJsonBody"===d?b.createElement(HS,{type:t,body:n.updateJsonBody,updateBody:i}):"patchJsonBody"===d?b.createElement(AS,{type:t,operations:n.patchJsonBody,updateOperations:l}):"matchReplaceBody"===d?b.createElement($S,{replacements:n.matchReplaceBody,updateReplacements:this.props.onChange("matchReplaceBody")}):"deepTransformBody"===d?b.createElement(HS,{type:t,body:n.deepTransformBody,updateBody:this.props.onChange("deepTransformBody")}):"none"===d?null:Rt(d))}clearValues(){KT.FIELDS.forEach(e=>this.props.onChange(e)(void 0))}setBodyReplacement(e){this.clearValues(),this.props.onChange("replaceBody")(e)}setJsonBodyUpdate(e){this.clearValues(),this.props.onChange("updateJsonBody")(e)}setJsonBodyPatch(e){this.clearValues(),this.props.onChange("patchJsonBody")(e)}};kS.FIELDS=["replaceBody","replaceBodyFromFile","updateJsonBody","patchJsonBody","matchReplaceBody","deepTransformBody"],QT([w.computed],kS.prototype,"bodyReplacementBuffer",null),QT([w.action.bound],kS.prototype,"clearValues",null),QT([w.action.bound],kS.prototype,"setBodyReplacement",null),QT([w.action.bound],kS.prototype,"setJsonBodyUpdate",null),QT([w.action.bound],kS.prototype,"setJsonBodyPatch",null),kS=KT=QT([E.PA],kS);const RS=e=>{const[t,n]=b.useState("text");return b.createElement(yS,null,b.createElement(oS,null,b.createElement(tS,null,"Replacement ",e.type," body"),b.createElement($b,{format:t,content:e.body,onFormatted:e.updateBody}),b.createElement(nS,{value:t,onChange:e=>n(e.target.value)},b.createElement("option",{value:"text"},"Plain text"),b.createElement("option",{value:"json"},"JSON"),b.createElement("option",{value:"xml"},"XML"),b.createElement("option",{value:"html"},"HTML"),b.createElement("option",{value:"css"},"CSS"),b.createElement("option",{value:"javascript"},"JavaScript"))),b.createElement(sS,null,b.createElement(Hf,{contentId:null,language:t,value:Wt(e.body),onChange:e.updateBody})))},OS=G($b)`
     padding-right: 0;
-`,HS=e=>{const[t,n]=b.useState(),[r,o]=b.useState(JSON.stringify(e.body,null,2));return b.useEffect(()=>{try{e.updateBody(JSON.parse(r)),n(void 0)}catch(e){n(Pt(e))}},[r]),b.createElement(yS,null,b.createElement(oS,null,b.createElement(tS,null,"JSON to merge into ",e.type," body"),t&&b.createElement(ds,{title:t.message}),b.createElement(OS,{format:"json",content:_t(r),onFormatted:o})),b.createElement(sS,{isInvalid:!!t},b.createElement(Hf,{contentId:null,language:"json",value:r,onChange:e=>o(e)})))},AS=e=>{const[t,n]=b.useState(),[r,o]=b.useState(JSON.stringify(e.operations,null,2));return b.useEffect(()=>{try{const t=JSON.parse(r),o=(0,JT.validate)(t);if(o)throw o;e.updateOperations(t),n(void 0)}catch(e){n(Pt(e))}},[r]),b.createElement(yS,null,b.createElement(oS,null,b.createElement(tS,null,"JSON ",e.type," body patch (see ",b.createElement("a",{href:"https://jsonpatch.com/"},"jsonpatch.com"),")"),t&&b.createElement(ds,{title:t.message}),b.createElement(OS,{format:"json",content:_t(r),onFormatted:o})),b.createElement(sS,{isInvalid:!!t},b.createElement(Hf,{contentId:null,language:"json",value:r,onChange:e=>o(e)})))},$S=e=>{const[t,n]=b.useState(),[r,o]=b.useState(e.replacements.map(([e,t])=>({key:e instanceof RegExp?e.source:y.escapeRegExp(e),value:t})));return b.useEffect(()=>{try{const t=r.filter(e=>!0===qS(e.key)),o=r.length-t.length;if(e.updateReplacements(t.map(({key:e,value:t})=>[new RegExp(e,"g"),t])),o>0)throw new Error(`${o} regular expression${1===o?" is":"s are"} invalid`);n(void 0)}catch(e){n(Pt(e))}},[r]),b.createElement(yS,null,b.createElement(oS,null,b.createElement(tS,null,"Regex matchers & replacements"),t&&b.createElement(ds,{title:t.message})),b.createElement(IS,{pairs:r,onChange:o,keyPlaceholder:"Regular expression to match",valuePlaceholder:"Replacement value",keyValidation:qS,valueValidation:e.valueValidation,allowEmptyValues:!0}))},IS=G(Xv)`
+`,HS = e => {
+    const [jsonStr, setJsonStr] = b.useState(JSON.stringify(e.body, null, 2));
+    const [error, setError] = b.useState();
+    const [useGui, setUseGui] = b.useState(true);
+
+    let parsedConfig = { pipeline: [], mutate: {} };
+    try {
+        parsedConfig = JSON.parse(jsonStr);
+        if (!parsedConfig.pipeline) parsedConfig.pipeline = [];
+        if (!parsedConfig.mutate) parsedConfig.mutate = {};
+    } catch (err) {}
+
+    const updateConfig = (newConfig) => {
+        const str = JSON.stringify(newConfig, null, 2);
+        setJsonStr(str);
+        try {
+            e.updateBody(newConfig);
+            setError(void 0);
+        } catch (err) {
+            setError(err.message);
+        }
+    };
+
+    const addPipelineStep = (type) => {
+        const step = type === 'aes' ? { type: 'aes', algorithm: 'aes-128-cbc', key: '', iv: '' } : type;
+        const newPipeline = [...parsedConfig.pipeline, step];
+        updateConfig({ ...parsedConfig, pipeline: newPipeline });
+    };
+
+    const removePipelineStep = (index) => {
+        const newPipeline = parsedConfig.pipeline.filter((_, i) => i !== index);
+        updateConfig({ ...parsedConfig, pipeline: newPipeline });
+    };
+
+    const updateAesStep = (index, field, value) => {
+        const newPipeline = parsedConfig.pipeline.map((step, i) => {
+            if (i === index) {
+                return { ...step, [field]: value };
+            }
+            return step;
+        });
+        updateConfig({ ...parsedConfig, pipeline: newPipeline });
+    };
+
+    const addMutationRow = () => {
+        const newMutate = { ...parsedConfig.mutate, "": "" };
+        updateConfig({ ...parsedConfig, mutate: newMutate });
+    };
+
+    const removeMutationRow = (key) => {
+        const newMutate = { ...parsedConfig.mutate };
+        delete newMutate[key];
+        updateConfig({ ...parsedConfig, mutate: newMutate });
+    };
+
+    const updateMutationKey = (oldKey, newKey) => {
+        if (oldKey === newKey) return;
+        const newMutate = {};
+        for (const [k, v] of Object.entries(parsedConfig.mutate)) {
+            if (k === oldKey) {
+                newMutate[newKey] = v;
+            } else {
+                newMutate[k] = v;
+            }
+        }
+        updateConfig({ ...parsedConfig, mutate: newMutate });
+    };
+
+    const updateMutationValue = (key, value) => {
+        const newMutate = { ...parsedConfig.mutate, [key]: value };
+        updateConfig({ ...parsedConfig, mutate: newMutate });
+    };
+
+    const renderPipelineStep = (step, index) => {
+        const isString = typeof step === 'string';
+        const type = isString ? step : step.type;
+        
+        return b.createElement("div", {
+            style: {
+                display: "flex",
+                flexDirection: "column",
+                padding: "8px",
+                border: "1px solid #444",
+                borderRadius: "4px",
+                marginBottom: "8px",
+                backgroundColor: "#222"
+            },
+            key: index
+        }, 
+            b.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                b.createElement("span", { style: { fontWeight: "bold", textTransform: "uppercase" } }, (index + 1) + ". " + type),
+                b.createElement("button", {
+                    onClick: () => removePipelineStep(index),
+                    style: { backgroundColor: "#d9534f", color: "white", border: "none", borderRadius: "3px", padding: "2px 6px", cursor: "pointer" }
+                }, "Remove")
+            ),
+            type === 'aes' && b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "6px", marginTop: "8px" } },
+                b.createElement("div", { style: { display: "flex", gap: "8px" } },
+                    b.createElement("select", {
+                        value: step.algorithm || 'aes-128-cbc',
+                        onChange: ev => updateAesStep(index, 'algorithm', ev.target.value),
+                        style: { padding: "4px", backgroundColor: "#333", color: "white", border: "1px solid #555" }
+                    },
+                        b.createElement("option", { value: "aes-128-cbc" }, "AES-128-CBC"),
+                        b.createElement("option", { value: "aes-256-cbc" }, "AES-256-CBC"),
+                        b.createElement("option", { value: "aes-128-gcm" }, "AES-128-GCM"),
+                        b.createElement("option", { value: "aes-256-gcm" }, "AES-256-GCM")
+                    )
+                ),
+                b.createElement("input", {
+                    type: "text",
+                    placeholder: "AES Key (16 or 32 chars)",
+                    value: step.key || "",
+                    onChange: ev => updateAesStep(index, 'key', ev.target.value),
+                    style: { padding: "4px", backgroundColor: "#333", color: "white", border: "1px solid #555" }
+                }),
+                b.createElement("input", {
+                    type: "text",
+                    placeholder: "AES IV (16 chars)",
+                    value: step.iv || "",
+                    onChange: ev => updateAesStep(index, 'iv', ev.target.value),
+                    style: { padding: "4px", backgroundColor: "#333", color: "white", border: "1px solid #555" }
+                })
+            )
+        );
+    };
+
+    return b.createElement(yS, null,
+        b.createElement(oS, null,
+            b.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" } },
+                b.createElement(tS, null, "Deep Transform Config"),
+                b.createElement("button", {
+                    onClick: () => setUseGui(!useGui),
+                    style: { backgroundColor: "#0275d8", color: "white", border: "none", borderRadius: "4px", padding: "4px 8px", cursor: "pointer" }
+                }, useGui ? "Switch to Code" : "Switch to GUI")
+            ),
+            error && b.createElement(ds, { title: error })
+        ),
+        useGui ? b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "16px", padding: "8px" } },
+            b.createElement("div", null,
+                b.createElement("h4", { style: { margin: "0 0 8px 0" } }, "Transformation Pipeline"),
+                parsedConfig.pipeline.map(renderPipelineStep),
+                b.createElement("div", { style: { display: "flex", gap: "8px", marginTop: "8px" } },
+                    b.createElement("button", { onClick: () => addPipelineStep('base64'), style: { padding: "4px 8px", cursor: "pointer" } }, "+ Base64"),
+                    b.createElement("button", { onClick: () => addPipelineStep('gzip'), style: { padding: "4px 8px", cursor: "pointer" } }, "+ Gzip"),
+                    b.createElement("button", { onClick: () => addPipelineStep('json'), style: { padding: "4px 8px", cursor: "pointer" } }, "+ JSON"),
+                    b.createElement("button", { onClick: () => addPipelineStep('protobuf'), style: { padding: "4px 8px", cursor: "pointer" } }, "+ Protobuf"),
+                    b.createElement("button", { onClick: () => addPipelineStep('aes'), style: { padding: "4px 8px", cursor: "pointer" } }, "+ AES Decrypt")
+                )
+            ),
+            b.createElement("div", null,
+                b.createElement("h4", { style: { margin: "0 0 8px 0" } }, "Rules & Mutations"),
+                Object.entries(parsedConfig.mutate).map(([key, val], idx) => {
+                    const isBool = typeof val === 'boolean';
+                    const isNum = typeof val === 'number';
+                    
+                    return b.createElement("div", {
+                        style: { display: "flex", gap: "8px", marginBottom: "8px", alignItems: "center" },
+                        key: idx
+                    },
+                        b.createElement("input", {
+                            type: "text",
+                            placeholder: "Path (e.g. 1.value)",
+                            value: key,
+                            onChange: ev => updateMutationKey(key, ev.target.value),
+                            style: { flex: 2, padding: "4px", backgroundColor: "#333", color: "white", border: "1px solid #555" }
+                        }),
+                        b.createElement("select", {
+                            value: isBool ? "bool" : isNum ? "num" : "str",
+                            onChange: ev => {
+                                const type = ev.target.value;
+                                if (type === "bool") updateMutationValue(key, false);
+                                else if (type === "num") updateMutationValue(key, 0);
+                                else updateMutationValue(key, "");
+                            },
+                            style: { padding: "4px", backgroundColor: "#333", color: "white", border: "1px solid #555" }
+                        },
+                            b.createElement("option", { value: "str" }, "Text"),
+                            b.createElement("option", { value: "num" }, "Number"),
+                            b.createElement("option", { value: "bool" }, "Boolean")
+                        ),
+                        isBool ? b.createElement("input", {
+                            type: "checkbox",
+                            checked: val,
+                            onChange: ev => updateMutationValue(key, ev.target.checked)
+                        }) : b.createElement("input", {
+                            type: isNum ? "number" : "text",
+                            placeholder: "Value",
+                            value: val,
+                            onChange: ev => {
+                                const v = ev.target.value;
+                                updateMutationValue(key, isNum ? Number(v) : v);
+                            },
+                            style: { flex: 3, padding: "4px", backgroundColor: "#333", color: "white", border: "1px solid #555" }
+                        }),
+                        b.createElement("button", {
+                            onClick: () => removeMutationRow(key),
+                            style: { backgroundColor: "#d9534f", color: "white", border: "none", borderRadius: "3px", padding: "4px 8px", cursor: "pointer" }
+                        }, "Delete")
+                    );
+                }),
+                b.createElement("button", {
+                    onClick: addMutationRow,
+                    style: { marginTop: "8px", padding: "4px 8px", cursor: "pointer" }
+                }, "+ Add Mutation")
+            )
+        ) : b.createElement(sS, { isInvalid: !!error },
+            b.createElement(Hf, {
+                contentId: null,
+                language: "json",
+                value: jsonStr,
+                onChange: ev => {
+                    setJsonStr(ev);
+                    try {
+                        e.updateBody(JSON.parse(ev));
+                        setError(void 0);
+                    } catch (err) {
+                        setError(err.message);
+                    }
+                }
+            })
+        )
+    );
+},AS=e=>{const[t,n]=b.useState(),[r,o]=b.useState(JSON.stringify(e.operations,null,2));return b.useEffect(()=>{try{const t=JSON.parse(r),o=(0,JT.validate)(t);if(o)throw o;e.updateOperations(t),n(void 0)}catch(e){n(Pt(e))}},[r]),b.createElement(yS,null,b.createElement(oS,null,b.createElement(tS,null,"JSON ",e.type," body patch (see ",b.createElement("a",{href:"https://jsonpatch.com/"},"jsonpatch.com"),")"),t&&b.createElement(ds,{title:t.message}),b.createElement(OS,{format:"json",content:_t(r),onFormatted:o})),b.createElement(sS,{isInvalid:!!t},b.createElement(Hf,{contentId:null,language:"json",value:r,onChange:e=>o(e)})))},$S=e=>{const[t,n]=b.useState(),[r,o]=b.useState(e.replacements.map(([e,t])=>({key:e instanceof RegExp?e.source:y.escapeRegExp(e),value:t})));return b.useEffect(()=>{try{const t=r.filter(e=>!0===qS(e.key)),o=r.length-t.length;if(e.updateReplacements(t.map(({key:e,value:t})=>[new RegExp(e,"g"),t])),o>0)throw new Error(`${o} regular expression${1===o?" is":"s are"} invalid`);n(void 0)}catch(e){n(Pt(e))}},[r]),b.createElement(yS,null,b.createElement(oS,null,b.createElement(tS,null,"Regex matchers & replacements"),t&&b.createElement(ds,{title:t.message})),b.createElement(IS,{pairs:r,onChange:o,keyPlaceholder:"Regular expression to match",valuePlaceholder:"Replacement value",keyValidation:qS,valueValidation:e.valueValidation,allowEmptyValues:!0}))},IS=G(Xv)`
     input:nth-of-type(odd) {
         font-family: ${e=>e.theme.monoFontFamily};
     }
