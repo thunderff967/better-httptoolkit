@@ -117,19 +117,19 @@
                 setProgress(100);
             });
 
-            document.addEventListener('load:failed', function (evt) {
                 setProgress(100);
+            document.addEventListener('load:failed', function (evt) {
 
                 let error = evt.error || {};
 
                 if (error.isTimeout) {
                     errorElement.innerText = 'This is taking longer than normal...';
                     errorDetailsElement.innerHTML = 'If this persists or happens often ' +
-                        'please <a href="https://github.com/httptoolkit/httptoolkit/issues/new">file an issue</a> ' + 'and help make HTTP Toolkit faster.';
+                        'please <a href="https://github.com/thunder967/better-httptoolkit/issues/new">file an issue</a> ' + 'and help make HTTP Toolkit faster.';
                 } else {
                     errorElement.innerText = 'Startup failed: "' + error.message + '"';
                     errorDetailsElement.innerHTML = 'Please ' +
-                        '<a href="https://github.com/httptoolkit/httptoolkit/issues/new">file an issue</a>, ' +
+                        '<a href="https://github.com/thunder967/better-httptoolkit/issues/new">file an issue</a>, ' +
                         "and we'll get this fixed ASAP";
                 }
             });
@@ -151,7 +151,7 @@
                     "This may mean your HTTP Toolkit installation is very outdated and requires a manual " +
                     "update to continue working. Please try reinstalling the app from httptoolkit.com." +
                     "\n\n" +
-                    "If that doesn't work, please report this bug at github.com/httptoolkit/httptoolkit to " +
+                    "If that doesn't work, please report this bug at github.com/thunder967/better-httptoolkit to " +
                     "get more help."
                 );
             }

@@ -11,6 +11,7 @@ console.log('\nBuilding in UNSIGNED mode (Clean production naming)\n');
 config.mac.forceCodeSigning = false;
 config.mac.notarize = false;
 config.win.forceCodeSigning = false;
+config.win.target = ["nsis", "portable"];
 config.npmRebuild = false;
 config.nodeGypRebuild = false;
 if (config.win.azureSignOptions) {
