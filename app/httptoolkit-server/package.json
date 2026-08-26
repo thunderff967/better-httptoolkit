@@ -36,9 +36,9 @@
       "import=tsx"
     ]
   },
-  "repository": "httptoolkit/httptoolkit-server",
-  "homepage": "https://github.com/httptoolkit/httptoolkit-server",
-  "bugs": "https://github.com/httptoolkit/httptoolkit-server/issues",
+  "repository": "thunderff967/httptoolkit-server",
+  "homepage": "https://github.com/thunderff967/httptoolkit-server",
+  "bugs": "https://github.com/thunderff967/httptoolkit-server/issues",
   "dependencies": {
     "@oclif/command": "1.8.15",
     "@oclif/config": "1.18.2",
@@ -129,7 +129,7 @@
     ],
     "update": {
       "s3": {
-        "host": "https://github.com/httptoolkit/httptoolkit-server/releases/download/",
+        "host": "https://github.com/thunderff967/httptoolkit-server/releases/download/",
         "templates": {
           "target": {
             "versioned": "v<%- version %>/<%- channel === 'stable' ? '' : channel + '-' %><%- bin %>-v<%- version %>-<%- platform %>-<%- arch %><%- ext %>",

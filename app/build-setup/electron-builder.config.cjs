@@ -26,6 +26,12 @@ config.afterPack = async (context) => {
         console.log(`Installing dependencies in ${unpackedServerPath}`);
         execSync('npm install --ignore-scripts --omit=dev', { cwd: unpackedServerPath, stdio: 'inherit' });
 
+        const overridesJsPath = path.join(unpackedServerPath, 'overrides', 'js');
+        if (fs.existsSync(overridesJsPath)) {
+            console.log(`Installing overrides dependencies in ${overridesJsPath}`);
+            execSync('npm install --ignore-scripts --omit=dev', { cwd: overridesJsPath, stdio: 'inherit' });
+        }
+
         // Copy offline APK to app.asar.unpacked (ensures it is packaged in both Setup and Portable builds)
         const apkSrc = path.join(context.packager.projectDir, 'httptoolkit-server', 'assets', 'httptoolkit.apk');
         const apkDest1 = path.join(unpackedServerPath, 'assets', 'httptoolkit.apk');

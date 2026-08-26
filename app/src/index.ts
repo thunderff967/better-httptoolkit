@@ -64,6 +64,8 @@ const LAST_RUN_LOG_PATH = path.join(LOGS_PATH, 'last-run.log');
 let windows: Electron.BrowserWindow[] = [];
 
 let server: ChildProcess | null = null;
+let serverKilled = false;
+let startServer: (retries?: number) => Promise<void>;
 
 interface ServerPorts {
     serverPort: number;
@@ -240,7 +242,7 @@ if (!amMainInstance) {
     writeLog(`--- Launching HTTP Toolkit desktop v${DESKTOP_VERSION} at ${new Date().toISOString()} ---`);
 
 
-    let serverKilled = false;
+
     app.on('will-quit', async (event) => {
         if (server && !serverKilled && !DEV_MODE) {
             // Don't shutdown until we've tried to kill the server
@@ -322,7 +324,7 @@ if (!amMainInstance) {
             logError(`Renderer gone: ${details.reason}`);
             showErrorAlert(
                 "UI crashed",
-                "The HTTP Toolkit UI stopped unexpected.\n\nPlease file an issue at github.com/httptoolkit/httptoolkit."
+                "The HTTP Toolkit UI stopped unexpected.\n\nPlease file an issue at github.com/thunderff967/httptoolkit."
             );
 
             setImmediate(() => {
@@ -482,7 +484,7 @@ if (!amMainInstance) {
         writeLog('Server cleanup check completed');
     }
 
-    async function startServer(retries = 2) {
+    startServer = async (retries = 2) => {
         writeLog('Starting server');
         const binName = isWindows ? 'httptoolkit-server.cmd' : 'httptoolkit-server';
         const serverBinPath = APP_PATH.endsWith('app.asar')
@@ -590,7 +592,7 @@ if (!amMainInstance) {
                 'HTTP Toolkit hit an error',
                 `${error.message}.\n\n` +
                 `See ${LAST_RUN_LOG_PATH} for more details.\n\n` +
-                `Please file an issue at github.com/httptoolkit/httptoolkit.`
+                `Please file an issue at github.com/thunderff967/httptoolkit.`
             );
 
             // Retry limited times, but not for near-immediate failures.
@@ -621,7 +623,7 @@ if (!amMainInstance) {
             "This will cause problems with HTTP Toolkit, and many other applications. " +
             "To fix this, set the COMSPEC environment variable to point to cmd.exe - most "  +
             "commonly that means 'C:\\Windows\\System32\\cmd.exe'.\n\n" +
-            "(Having trouble? File an issue at github.com/httptoolkit/httptoolkit)"
+            "(Having trouble? File an issue at github.com/thunderff967/httptoolkit)"
         );
 
         // Overwrite it for our purposes anyway, to try to minimize breakage:
@@ -821,11 +823,22 @@ ipcMain.handle('set-component-versions', ipcHandler((versions: Record<string, st
 }));
 
 let restarting = false;
-ipcMain.handle('restart-app', ipcHandler(() => {
+ipcMain.handle('restart-app', ipcHandler(async () => {
     if (restarting) return;
     restarting = true;
-    console.log('Restarting...');
-
-    app.relaunch();
-    app.quit();
+    console.log('Soft-restarting server...');
+    serverKilled = true;
+    if (server) {
+        try {
+            await stopServer(server, AUTH_TOKEN, serverPorts.serverPort);
+        } catch (e) {
+            console.error('Failed to cleanly stop server:', e);
+        }
+        server = null;
+    }
+    serverKilled = false;
+    startServer(2).catch(err => {
+        console.error('Failed to restart server:', err);
+    });
+    restarting = false;
 }));

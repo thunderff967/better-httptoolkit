@@ -74,7 +74,7 @@ export const getMenu = (
                 },
                 {
                     label: 'Share Your Feedback',
-                    click () { shell.openExternal('https://github.com/httptoolkit/httptoolkit/issues/new/choose') }
+                    click () { shell.openExternal('https://github.com/thunderff967/httptoolkit/issues/new/choose') }
                 },
                 {
                     label: 'View HTTP Toolkit Logs',

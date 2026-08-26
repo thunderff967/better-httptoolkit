@@ -66,7 +66,7 @@ async function insertServer(
         : {}
 
     const response = await fetch(
-        'https://api.github.com/repos/httptoolkit/httptoolkit-server/releases',
+        'https://api.github.com/repos/thunderff967/httptoolkit-server/releases',
         { headers }
     );
     if (!response.ok) {
