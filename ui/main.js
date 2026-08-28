@@ -2488,75 +2488,73 @@ let data = new Uint8Array(buffer);
                         onChange: ev => setMatchUrl(ev.target.value)
                     })
                 ),
-                b.createElement("div", { style: { marginTop: "20px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "15px" } },
-                    b.createElement("h3", { style: { fontSize: "16px", marginBottom: "10px", fontWeight: "bold" } }, "Decryption & Decoding Pipeline"),
-                    b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" } },
-                        pipeline.map((step, idx) => b.createElement("div", {
-                            key: step.id,
-                            style: {
-                                padding: "12px",
-                                border: "1px solid rgba(255,255,255,0.1)",
-                                borderRadius: "4px",
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "8px"
-                            }
-                        },
-                            b.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
-                                b.createElement("span", { style: { fontWeight: "bold", fontSize: "13px" } }, "Step " + (idx + 1) + ": " + step.type.toUpperCase().split("_").join(" ")),
-                                b.createElement(_p, {
-                                    onClick: () => removePipelineStep(step.id),
-                                    style: { padding: "3px 8px", fontSize: "11px" }
-                                }, "Remove")
-                            ),
-                            step.type === "aes_decrypt" && b.createElement("div", { style: { display: "flex", gap: "10px" } },
-                                b.createElement(Kp, {
-                                    type: "text",
-                                    placeholder: "AES Key (Text/Hex)",
-                                    value: step.key || "",
-                                    onChange: ev => updateStepField(step.id, "key", ev.target.value)
-                                }),
-                                b.createElement(Kp, {
-                                    type: "text",
-                                    placeholder: "AES IV",
-                                    value: step.iv || "",
-                                    onChange: ev => updateStepField(step.id, "iv", ev.target.value)
-                                })
-                            ),
-                            step.type === "protobuf_parse" && b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } },
-                                b.createElement(Kp, {
-                                    type: "text",
-                                    placeholder: "Main Message Name (e.g. GetFriendResponse)",
-                                    value: step.messageName || "",
-                                    onChange: ev => updateStepField(step.id, "messageName", ev.target.value)
-                                }),
-                                b.createElement(Kp, {
-                                    as: "textarea",
-                                    placeholder: "Protobuf Schema (.proto definition)...",
-                                    value: step.schema || "",
-                                    onChange: ev => updateStepField(step.id, "schema", ev.target.value),
-                                    style: { minHeight: "80px", fontFamily: "monospace", resize: "vertical" }
-                                })
-                            )
-                        ))
-                    ),
-                    b.createElement("div", { style: { display: "flex", gap: "10px", marginTop: "12px", alignItems: "center" } },
-                        b.createElement(Jp, {
-                            value: newStepType,
-                            onChange: ev => setNewStepType(ev.target.value),
-                            style: { width: "auto" }
-                        },
-                            b.createElement("option", { value: "aes_decrypt" }, "AES-CBC Decrypt"),
-                            b.createElement("option", { value: "base64_decode" }, "Base64 Decode"),
-                            b.createElement("option", { value: "hex_decode" }, "Hex Decode"),
-                            b.createElement("option", { value: "url_decode" }, "URL Decode"),
-                            b.createElement("option", { value: "protobuf_parse" }, "Protobuf Parse")
+                b.createElement(rR, null, "Decryption & Decoding Pipeline"),
+                b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "10px", marginTop: "10px" } },
+                    pipeline.map((step, idx) => b.createElement("div", {
+                        key: step.id,
+                        style: {
+                            padding: "12px",
+                            border: "1px solid rgba(255,255,255,0.1)",
+                            borderRadius: "4px",
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "8px"
+                        }
+                    },
+                        b.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center" } },
+                            b.createElement("span", { style: { fontWeight: "bold", fontSize: "13px" } }, "Step " + (idx + 1) + ": " + step.type.toUpperCase().split("_").join(" ")),
+                            b.createElement(_p, {
+                                onClick: () => removePipelineStep(step.id),
+                                style: { padding: "3px 8px", fontSize: "11px" }
+                            }, "Remove")
                         ),
-                        b.createElement(Wp, {
-                            onClick: addPipelineStep,
-                            style: { padding: "5px 12px" }
-                        }, "+ Add Step")
-                    )
+                        step.type === "aes_decrypt" && b.createElement("div", { style: { display: "flex", gap: "10px" } },
+                            b.createElement(Kp, {
+                                type: "text",
+                                placeholder: "AES Key (Text/Hex)",
+                                value: step.key || "",
+                                onChange: ev => updateStepField(step.id, "key", ev.target.value)
+                            }),
+                            b.createElement(Kp, {
+                                type: "text",
+                                placeholder: "AES IV",
+                                value: step.iv || "",
+                                onChange: ev => updateStepField(step.id, "iv", ev.target.value)
+                            })
+                        ),
+                        step.type === "protobuf_parse" && b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "8px" } },
+                            b.createElement(Kp, {
+                                type: "text",
+                                placeholder: "Main Message Name (e.g. GetFriendResponse)",
+                                value: step.messageName || "",
+                                onChange: ev => updateStepField(step.id, "messageName", ev.target.value)
+                            }),
+                            b.createElement(Kp, {
+                                as: "textarea",
+                                placeholder: "Protobuf Schema (.proto definition)...",
+                                value: step.schema || "",
+                                onChange: ev => updateStepField(step.id, "schema", ev.target.value),
+                                style: { minHeight: "80px", fontFamily: "monospace", resize: "vertical" }
+                            })
+                        )
+                    ))
+                ),
+                b.createElement("div", { style: { display: "flex", gap: "10px", marginTop: "12px", alignItems: "center" } },
+                    b.createElement(Jp, {
+                        value: newStepType,
+                        onChange: ev => setNewStepType(ev.target.value),
+                        style: { width: "auto" }
+                    },
+                        b.createElement("option", { value: "aes_decrypt" }, "AES-CBC Decrypt"),
+                        b.createElement("option", { value: "base64_decode" }, "Base64 Decode"),
+                        b.createElement("option", { value: "hex_decode" }, "Hex Decode"),
+                        b.createElement("option", { value: "url_decode" }, "URL Decode"),
+                        b.createElement("option", { value: "protobuf_parse" }, "Protobuf Parse")
+                    ),
+                    b.createElement(Wp, {
+                        onClick: addPipelineStep,
+                        style: { padding: "5px 12px" }
+                    }, "+ Add Step")
                 ),
                 b.createElement("div", { style: { display: "flex", gap: "10px", marginTop: "20px", justifyContent: "flex-end" } },
                     b.createElement(_p, { onClick: () => setEditingRule(null) }, "Cancel"),
@@ -2564,17 +2562,11 @@ let data = new Uint8Array(buffer);
                 )
             ) : b.createElement("div", null,
                 b.createElement("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" } },
-                    b.createElement("span", { style: { color: "rgba(255,255,255,0.6)", fontSize: "14px" } }, "Configure rules to automatically decrypt and format matching traffic in the View tab."),
+                    b.createElement(nR, null, "Configure rules to automatically decrypt and format matching traffic in the View tab."),
                     b.createElement(Wp, { onClick: handleAdd }, "+ Add Rule")
                 ),
                 rules.length === 0 ? b.createElement(Dp, { collapsed: false, expanded: true },
-                    b.createElement("div", {
-                        style: {
-                            padding: "40px",
-                            textAlign: "center",
-                            color: "rgba(255,255,255,0.4)"
-                        }
-                    }, "No auto-decryption rules configured yet.")
+                    b.createElement(nR, { style: { padding: "20px", textAlign: "center" } }, "No auto-decryption rules configured yet.")
                 ) : b.createElement("div", { style: { display: "flex", flexDirection: "column", gap: "12px" } },
                     rules.map(rule => b.createElement(Dp, { key: rule.id, collapsed: false, expanded: true },
                         b.createElement("div", {

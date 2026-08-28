@@ -12,6 +12,10 @@ config.mac.forceCodeSigning = false;
 config.mac.notarize = false;
 config.win.forceCodeSigning = false;
 config.win.target = ["nsis", "portable"];
+config.nsis.artifactName = "HTTP-Toolkit-Setup-\${version}.\${ext}";
+config.portable = {
+  artifactName: "HTTP-Toolkit-Portable-\${version}.\${ext}"
+};
 config.npmRebuild = false;
 config.nodeGypRebuild = false;
 if (config.win.azureSignOptions) {
