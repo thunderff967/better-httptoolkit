@@ -25,7 +25,34 @@ process.env.CSC_IDENTITY_AUTO_DISCOVERY = 'false';
 
 config.afterPack = async (context) => {
     console.log("Running afterPack hook to install server dependencies...");
-    const unpackedServerPath = path.join(context.appOutDir, 'resources', 'app.asar.unpacked', 'httptoolkit-server');
+    
+    // Create MCP wrapper scripts in the resources directory
+    const resourcesPath = path.join(context.appOutDir, 'resources');
+    const mcpCmdPath = path.join(resourcesPath, 'httptoolkit-mcp.cmd');
+    const mcpCmdContent = `@echo off
+set "HTK_DESKTOP_RESOURCES=%~dp0"
+for %%I in ("%~dp0..") do set "HTK_DESKTOP_EXE=%%~fI\\HTTP Toolkit.exe"
+"%~dp0app.asar.unpacked\\httptoolkit-server\\bin\\httptoolkit-server.cmd" mcp %*
+`;
+    fs.writeFileSync(mcpCmdPath, mcpCmdContent, 'utf8');
+    console.log('Created httptoolkit-mcp.cmd wrapper in resources.');
+
+    const mcpBashPath = path.join(resourcesPath, 'httptoolkit-mcp');
+    const mcpBashContent = `#!/bin/sh
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_DIR="$(dirname "$SCRIPT_DIR")"
+export HTK_DESKTOP_RESOURCES="$SCRIPT_DIR"
+if [ "$(uname)" = "Darwin" ]; then
+    export HTK_DESKTOP_EXE="$APP_DIR/MacOS/HTTP Toolkit"
+else
+    export HTK_DESKTOP_EXE="$APP_DIR/httptoolkit"
+fi
+exec "$SCRIPT_DIR/app.asar.unpacked/httptoolkit-server/bin/httptoolkit-server" mcp "$@"
+`;
+    fs.writeFileSync(mcpBashPath, mcpBashContent, { encoding: 'utf8', mode: 0o755 });
+    console.log('Created httptoolkit-mcp bash wrapper in resources.');
+
+    const unpackedServerPath = path.join(resourcesPath, 'app.asar.unpacked', 'httptoolkit-server');
     if (fs.existsSync(unpackedServerPath)) {
         console.log(`Installing dependencies in ${unpackedServerPath}`);
         execSync('npm install --ignore-scripts --omit=dev', { cwd: unpackedServerPath, stdio: 'inherit' });
