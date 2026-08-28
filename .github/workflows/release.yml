@@ -27,7 +27,7 @@ jobs:
 
       - name: Install Dependencies
         working-directory: app
-        run: npm install
+        run: npm install --ignore-scripts
 
       - name: Build Electron App
         working-directory: app

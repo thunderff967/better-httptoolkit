@@ -7,8 +7,3 @@ build/
 Thumbs.db
 /scratch
 log.txt
-
-# Heavy binary/asset overrides
-*.apk
-app/httptoolkit-server/assets/
-app/httptoolkit-server/httptoolkit.apk
