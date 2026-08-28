@@ -31,7 +31,14 @@ jobs:
 
       - name: Build Electron App
         working-directory: app
-        run: npm run build:electron
+        run: |
+          npm run build
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            npx electron-builder build --win --config ./build-setup/electron-builder.config.cjs
+          else
+            npx electron-builder build --linux --config ./build-setup/electron-builder.config.cjs
+          fi
+        shell: bash
 
       - name: Upload Release Assets
         uses: softprops/action-gh-release@v2
