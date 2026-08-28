@@ -1,0 +1,45 @@
+name: Release Draft
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Draft Release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Dependencies
+        working-directory: app
+        run: npm install
+
+      - name: Build Electron App
+        working-directory: app
+        run: npm run build:electron
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            app/dist/*.exe
+            app/dist/*.deb
+            app/dist/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

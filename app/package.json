@@ -72,7 +72,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "build:electron": "npm run build && npx electron-builder build --config ./build-setup/electron-builder.config.cjs"
+    "build:electron": "npm run build && npx electron-builder build --win --linux --config ./build-setup/electron-builder.config.cjs"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

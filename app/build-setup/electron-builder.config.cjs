@@ -16,6 +16,26 @@ config.nsis.artifactName = "HTTP-Toolkit-Setup-\${version}.\${ext}";
 config.portable = {
   artifactName: "HTTP-Toolkit-Portable-\${version}.\${ext}"
 };
+config.linux = {
+  target: process.platform === 'win32' ? ["zip"] : ["deb", "zip"],
+  executableName: "httptoolkit",
+  category: "Development",
+  maintainer: "contact@httptoolkit.com"
+};
+config.deb = {
+  artifactName: "HTTP-Toolkit-Debian-\${version}.\${ext}",
+  depends: [
+    "libgtk-3-0",
+    "libnotify4",
+    "libnss3",
+    "libxss1",
+    "libxtst6",
+    "xdg-utils",
+    "libatspi2.0-0",
+    "libuuid1",
+    "libsecret-1-0"
+  ]
+};
 config.npmRebuild = false;
 config.nodeGypRebuild = false;
 if (config.win.azureSignOptions) {
